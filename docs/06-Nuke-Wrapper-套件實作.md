@@ -1,13 +1,3 @@
----
-tags:
-  - dev
-  - dev/pipeline
-  - rez
-  - nuke
-  - wrapper
-aliases:
-  - Rez Nuke Wrapper 套件實作
----
 # Nuke Wrapper 套件跨平台實作指南
 
 本文檔提供 Foundry Nuke 在混合作業系統下的標準 Wrapper `package.py` 實作程式碼，支援 Windows 藝術家工作站與 Linux/Windows 算圖農場節點，並徹底解決 Windows 下別名失效的問題。
@@ -124,7 +114,9 @@ def commands():
 1. **捨棄 `alias()`，改用實體 Shim 腳本**：
    Rez 在 Windows cmd 環境下是透過 `doskey` 實作 alias，但在非互動式命令列（如 Deadline 算圖任務、CI 腳本）中 `doskey` 會完全失效；而在 PowerShell 中帶引號的路徑函式亦有語法陷阱。透過在 Wrapper 中內建 `bin/nuke.cmd`，完美支援任何外層 Shell 與農場調用。
 2. **Nuke 命令列參數 `-c` 誤區**：
-   > [!warning] Nuke 的 `-c` 不是執行 Python 字串
+   > [!WARNING]
+   > **Nuke 的 `-c` 不是執行 Python 字串**
+   >
    > 與標準 Python 的 `python -c "print(1)"` 不同，Nuke CLI 的 `-c <size>` 代表**設定快取記憶體大小（Cache Size）**。若要透過命令列執行 Python 腳本測試，必須建立一個實體 `.py` 檔案並以 `nuke -t test_script.py` 執行。
 3. **無須手動設定 `LD_LIBRARY_PATH`**：
    Nuke 原廠二進位自帶完整的 RPATH 尋址機制，避免手動 prepend `LD_LIBRARY_PATH` 造成與外部工具的動態函式庫衝突。

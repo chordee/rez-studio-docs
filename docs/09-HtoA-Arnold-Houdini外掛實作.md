@@ -1,15 +1,3 @@
----
-tags:
-  - dev
-  - dev/pipeline
-  - rez
-  - houdini
-  - arnold
-  - htoa
-  - payload
-aliases:
-  - Rez HtoA Arnold Houdini 外掛實作
----
 # HtoA (Arnold for Houdini) 外掛套件實作指南
 
 本文檔示範將 **Arnold for Houdini (HtoA)** 渲染器打包為 Rez 自包含實體負載（Payload）套件的標準流程。本套件支援 Windows 工作站與 Linux 農場節點，並結合 Local Package Cache 機制。
@@ -23,7 +11,9 @@ aliases:
 
 ### 2. 實體目錄樹與路徑規則
 
-> [!important] 官方路徑設定與 ABI 配對說明
+> [!IMPORTANT]
+> **官方路徑設定與 ABI 配對說明**
+>
 > 1. **執行檔路徑依據**：官方套件設定（`Arnold.json`）將 `PATH` 指向 **`scripts/bin/`**，包含 Arnold CLI 工具（`kick`, `maketx`）與核心動態函式庫（`ai.dll` / `libai.so`）。因此在 Rez Payload 目錄中，執行檔與核心庫統一依此規範放置於 `scripts/bin/`。
 > 2. **Houdini 與 HtoA 版本配對**：本文以 HtoA 6.3.3.0 與 Houdini 20.5.278 作為示範配對案例。實際生產環境請依據工作室採用的具體 Houdini Production/Daily Build，下載官方釋出之完全對應 Build。
 > 3. **Linux 多維度 ABI 選型規範**：在官方 `Arnold.json` 中可見 `HTOA_PY_SUFFIX`（如 `.py310`、`.py311`）與 `HTOA_GCC_SUFFIX`（如 `_gcc9`、`_gcc11`）。Linux 上的 HtoA 安裝包會依據 Python 與 GCC 版本劃分不同的建置（例如 `HtoA ... Linux (GCC 11.2) Python 3.11`）。放置於 `platform-linux/houdini-20.5.278` 的實體目錄內容，**必須與農場 Houdini 安裝的 `houdini_platform_build` 完全匹配**（Houdini 20.5 官方預設為 **Python 3.11 + GCC 11.2**），否則載入 DSO 時將引發二進位不相容崩潰。
@@ -112,7 +102,9 @@ def commands():
 * 末端的 `&` 確保 Houdini 原生內部節點正常讀取，前面的 `{root}` 確保 Arnold 節點優先載入。
 
 ### 2. Standalone Kick 算圖的依賴約束
-> [!important] 依賴相依提醒
+> [!IMPORTANT]
+> **依賴相依提醒**
+>
 > 由於 `htoa` 的 variants 宣告了 `houdini-20.5.278`，因此執行 `rez-env htoa -- kick` 時，Rez 會**連帶解析出 Houdini Wrapper 套件**。
 > 這意味著純算圖節點若要使用 HtoA 內建的 `kick` 算圖，該節點本機也必須安裝有對應的 Houdini 軟體（否則會被 Houdini Wrapper 的 `stop()` 攔截）。若工作室需要完全脫離 Houdini 安裝的純 CPU/GPU 算圖節點，建議另外封裝獨立的 `arnold_core` 套件。
 

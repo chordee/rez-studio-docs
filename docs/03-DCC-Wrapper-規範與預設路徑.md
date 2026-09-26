@@ -1,13 +1,3 @@
----
-tags:
-  - dev
-  - dev/pipeline
-  - rez
-  - dcc
-  - wrapper
-aliases:
-  - Rez DCC Wrapper 規範與預設路徑
----
 # DCC Wrapper 套件規範與預設安裝路徑對照
 
 本文檔定義大型商業數位內容創作軟體（DCC：Houdini、Maya、Nuke）在 Rez 體系下的封裝哲學、預設路徑規格與 `package.py` 撰寫規範。
@@ -58,7 +48,9 @@ import os
 if not os.path.exists(dcc_root):
     stop(f"找不到指定的軟體安裝路徑: {dcc_root}")
 ```
-> [!note] `stop()` 的觸發時機
+> [!NOTE]
+> **`stop()` 的觸發時機**
+>
 > `commands()` 區塊是在**進入環境或執行指令時**才被直譯器執行。在中央派遣器使用 `rez-env -o job.rxt` 烘焙 Context 時並不會執行 `commands()`，因此派遣機本機未安裝 DCC 依然能成功計算相依性並導出 Context。`stop()` 會在農場節點實際載入環境時守門。
 
 ### 4. 嚴格定義根變數與二進位執行路徑
@@ -67,16 +59,22 @@ if not os.path.exists(dcc_root):
 - **Nuke**：必須將安裝根目錄加入 `PATH`，並為 Windows 提供 `bin/*.cmd` 實體 shim。
 
 ### 5. 理解 Rez 變數初次賦值的覆寫行為
-> [!important] 變數覆寫機制與 HOUDINI_PATH
+> [!IMPORTANT]
+> **變數覆寫機制與 HOUDINI_PATH**
+>
 > 在 Rez 體系中，**當一個 Context 第一次對某環境變數執行操作時，即使使用者的父環境中已存在該變數，Rez 也會直接將其覆寫**（除非該變數已在全域設定檔的 `parent_variables` 中聲明繼承）。
 > 這也是為什麼在 Houdini Wrapper 中，**絕對不能寫 `if not defined("HOUDINI_PATH")`**；若判斷為 True 而跳過，後續外掛（如 HtoA）的 `prepend` 會被視為首次操作而直接覆寫全域，導致末端的 `&` 消失、原生節點全滅。因此基礎變數必須由宿主 Wrapper 無條件指定預設值。
 
 ### 6. 切勿將 DCC 內嵌 Python 任意注入全域 `PYTHONPATH`
-> [!caution] 避免全域 Python 環境污染
+> [!CAUTION]
+> **避免全域 Python 環境污染**
+>
 > Maya、Houdini 各自攜帶特定編譯旗標與客製化版本的 Python（例如 Maya 帶有專屬的 `site-packages`）。若將 DCC 的 Python 目錄無條件加入全域 `PYTHONPATH`，當使用者在環境中同時執行其他系統工具時，極易引發二進位 ABI 不相容而崩潰（如 Segmentation Fault 或 DLL Load Failed）。DCC 內部模組應盡量限定在 DCC 自身啟動時由其內部環境讀取。
 
 ### 7. 依靠 RPATH 尋址，勿在 Linux 濫用 `LD_LIBRARY_PATH`
-> [!caution] 避免動態函式庫符號踩踏
+> [!CAUTION]
+> **避免動態函式庫符號踩踏**
+>
 > Houdini、Maya、Nuke 原廠二進位檔皆已內嵌正確的 ELF `RPATH` / `RUNPATH`，軟體啟動時會優先讀取自帶的 .so。若在 Wrapper 中對全域 `LD_LIBRARY_PATH` 進行 prepend，極易導致同環境中混用的其他軟體或外部工具發生 GCC / Qt / C++ Runtime 符號版本衝突。
 
 ---

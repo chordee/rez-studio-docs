@@ -1,13 +1,3 @@
----
-tags:
-  - dev
-  - dev/pipeline
-  - rez
-  - payload
-  - variants
-aliases:
-  - Rez 外掛 Payload 套件規範與 Variants 機制
----
 # 外掛 Payload 套件規範與 Variants 多維度變體機制
 
 本文檔解析 Rez 體系中與 Wrapper 完全相反的另一種核心套件型態：**實體負載套件（Payload Package / Self-contained Package）**。我們將透過外掛（Plugin）的維護視角，深入探討二進位相容性、`rez-bind` 基礎依賴、`variants` 巢狀路徑規則、`cachable` 快取宣告，以及 `{root}` 動態路徑解析機制。
@@ -51,7 +41,9 @@ variants = [
 
 ## 三、中央儲存庫的實體目錄結構（Rez 標準巢狀規則）
 
-> [!important] Rez 實體目錄的巢狀規則
+> [!IMPORTANT]
+> **Rez 實體目錄的巢狀規則**
+>
 > Rez 在儲存套件變體時，**不會**將多個 requirement 透過底線串接為單一資料夾，而是依照 `variants` 宣告的 requirement 順序，在檔案系統中建立**巢狀子目錄（Nested Subpaths）**。
 
 ```text
@@ -75,7 +67,9 @@ X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3
             └── python/
 ```
 
-> [!note] Linux Variant 實體 Build 放置規範
+> [!NOTE]
+> **Linux Variant 實體 Build 放置規範**
+>
 > 官方釋出之 Linux HtoA 包含多種 Python 及 GCC 組合（例如 `HtoA ... Linux (GCC 11.2) Python 3.11`）。在當前 `variants` 設計下，`platform-linux/houdini-20.5.278` 資料夾內必須精確放置與農場 Houdini `houdini_platform_build` 相符的二進位建置。若未來農場同時存在多種 Python 或 GCC 版本，則需在 variants 中進一步擴展相應維度。
 
 ---

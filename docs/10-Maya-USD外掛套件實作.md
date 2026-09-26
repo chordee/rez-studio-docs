@@ -1,15 +1,3 @@
----
-tags:
-  - dev
-  - dev/pipeline
-  - rez
-  - maya
-  - usd
-  - maya_usd
-  - payload
-aliases:
-  - Rez Maya-USD 外掛套件實作
----
 # Maya-USD 外掛套件實作指南
 
 本文檔示範將 **Autodesk Maya-USD** 開源外掛打包為 Rez 自包含實體負載（Payload）套件的標準流程。示範如何透過 Autodesk 模組化規範（Maya Module `.mod`）實現乾淨註冊，並探討套件不可變性與治理策略。
@@ -128,7 +116,9 @@ def commands():
     env.MAYA_MODULE_PATH.append("{root}")
 ```
 
-> [!important] 跨 DCC 零污染架構
+> [!IMPORTANT]
+> **跨 DCC 零污染架構**
+>
 > 過去若在 `package.py` 內手動宣告全域 `PXR_USD_WINDOWS_DLL_PATH`，會導致 Windows 下的 Pixar USD C++ 函式庫全面停止尋址 `PATH`；若與 Houdini 混用環境，Houdini 內建的 USD 會被誤導載入 Maya-USD 的動態庫而崩潰。
 > **透過實體驗證確認 `mayausd.mod` 內部已原生自帶該變數宣告**，將其完全收斂於 Maya 進程內部，外部環境變數維持極致乾淨，徹底消除了跨 DCC 的 DLL 衝突風險！
 

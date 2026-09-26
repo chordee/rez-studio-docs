@@ -1,13 +1,3 @@
----
-tags:
-  - dev
-  - dev/pipeline
-  - rez
-  - houdini
-  - wrapper
-aliases:
-  - Rez Houdini Wrapper 套件實作
----
 # Houdini Wrapper 套件跨平台實作指南
 
 本文檔提供 SideFX Houdini 在混合作業系統下的標準 Wrapper `package.py` 實作程式碼，支援 Windows 藝術家工作站與 Linux/Windows 算圖農場節點，並包含農場級的真實環境隔離機制。
