@@ -31,7 +31,7 @@ X:/rez-system/packages/maya_usd/0.28.0/
 │
 ├── platform-windows/
 │   └── maya-2024/                              # Windows + Maya 2024 巢狀子目錄
-│       ├── mayaUSD.mod                         # Autodesk 模組定義檔（CMake 標準命名）
+│       ├── mayausd.mod                         # Autodesk 模組定義檔（官方實際產出為全小寫）
 │       ├── mayausd/
 │       │   ├── MayaUSD/                        # MayaUSD 外掛本體 (plugin, scripts)
 │       │   └── USD/                            # Pixar USD 核心 dll, schemas, python
@@ -39,28 +39,33 @@ X:/rez-system/packages/maya_usd/0.28.0/
 │
 └── platform-linux/
     └── maya-2024/                              # Linux + Maya 2024 巢狀子目錄
-        ├── mayaUSD.mod
+        ├── mayausd.mod
         ├── mayausd/
         │   ├── MayaUSD/
         │   └── USD/
         └── ...
 ```
 
-### 3. 重要前置步驟：改寫 `mayaUSD.mod` 為相對路徑（保證可重定位）
+### 3. 重要前置步驟：檢視與改寫 `mayausd.mod`（實體驗證分析）
 
-CMake 建置產出的官方檔名為 **`mayaUSD.mod`**（Linux 系統區分大小寫，務必統一）。Autodesk 安裝程式產生的 `.mod` 通常寫死安裝位置的本機絕對路徑（如 `C:\Program Files\Autodesk\MayaUSD\...`）。
-當將外掛移至中央 NAS 套件庫（`X:/rez-system/...`）或啟用 `relocatable = True` 搭配 `cache_packages_path` 快取至本機 NVMe 時，寫死的絕對路徑會導致外掛依然讀取原安裝路徑，使重定位與快取完全失效。
+實測檢視 Autodesk 官方安裝目錄（例如 `C:\Program Files\Autodesk\MayaUSD\Maya2027\0.36.0\mayausd.mod`）與原廠範本，揭示了真實的模組結構：
 
-> [!warning] Maya 模組語法規則與路徑陷阱
-> 參照官方模組範本（如 `mayaUSD_Win.mod.template`），一個完整的 Maya-USD 包含三大模組段落：
-> 1. `+ USD <USD_VERSION> <INSTALL_DIR>/mayausd/USD`
-> 2. `+ MayaUSD_LIB <MAYAUSD_VERSION> <INSTALL_DIR>/mayausd/MayaUSD`（在此定義核心 DLL `PATH+:=lib`、Python 模組 `PYTHONPATH+:=lib/python` 與 Schema `PXR_PLUGINPATH_NAME+:=lib/usd`）
-> 3. `+ MayaUSD <MAYAUSD_VERSION> <INSTALL_DIR>/mayausd/MayaUSD/plugin/adsk`（在此定義 `plug-ins: plugin`、`icons:` 等 UI 資源）
-> 
-> **關鍵語法規則**：`.mod` 內的 `icons:`、`plug-ins:`、`scripts:` 等子路徑，是**相對於各段 `+` 宣告的模組根目錄（Module Root Path），而非相對於 `.mod` 檔案本身**！且 `<USD_VERSION>` 等版本號是由建置系統注入的確切數值。
-> **正確做法**：絕不更動內部的模組定義或子路徑，**僅將每個 `+` 開頭行末尾的絕對安裝根目錄改為相對路徑（`./...`）**。
+1. **檔名標準**：官方安裝產物統一為全小寫的 **`mayausd.mod`**。
+2. **完整模組架構**：官方定義包含 `USD`、`MayaUSD_LIB`、`MayaUSD` 以及 `MAYAHYDRA` 四大模組段落。
+3. **DLL 搜尋路徑已原生內建**：
+   在 `mayausd.mod` 內部，官方已原生宣告了 Windows Python 3.8+ 所需的 DLL 尋址：
+   ```text
+   PXR_USD_WINDOWS_DLL_PATH+:=bin
+   PXR_USD_WINDOWS_DLL_PATH+:=lib
+   PXR_USD_WINDOWS_DLL_PATH+:=plugin/usd
+   ```
+   這證實了外掛在 Maya 啟動時會由模組系統內部自動配妥 DLL 路徑，**Rez 的 `package.py` 完全無需（亦不應）在全域環境重複宣告**。
+4. **相對路徑重定位規則**：
+   - 位於安裝根目錄（`MayaUSD/<MayaVer>/<Version>/`）下的 `mayausd.mod`，其 `+` 宣告預設即為相對路徑（例如 `+ USD 0.25.11 mayausd/USD`）。
+   - 若由系統共享註冊目錄（`Common Files/Autodesk Shared/Modules/Maya/...`）取得的 `.mod`，其路徑已被展開為本機絕對路徑（`C:\Program Files\Autodesk\MayaUSD\...`）。
+   - **關鍵語法規則**：`.mod` 內的 `icons:`、`plug-ins:`、`scripts:` 等子路徑，是**相對於各段 `+` 宣告的模組根目錄（Module Root Path），而非相對於 `.mod` 檔案本身**。因此若取得絕對路徑版本，**僅需將每個 `+` 開頭行末尾的絕對安裝根目錄置換為相對路徑（`./...` 或 `mayausd/...`），其餘所有宣告內容完全保持原樣**。
 
-在發布套件前，執行以下 Python 腳本完成路徑相對化：
+若需將絕對路徑的 `mayausd.mod` 轉為相對路徑，可執行以下 Python 腳本：
 
 ```python
 import logging
@@ -78,22 +83,22 @@ def relativize_mod(mod_file: Path, install_root: str) -> None:
         lines.append(line)
     mod_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-# 針對發布庫中的 mayaUSD.mod 進行相對路徑改寫
+# 針對發布庫中的 mayausd.mod 進行相對路徑改寫
 relativize_mod(
-    Path("X:/rez-system/packages/maya_usd/0.28.0/platform-windows/maya-2024/mayaUSD.mod"),
+    Path("X:/rez-system/packages/maya_usd/0.28.0/platform-windows/maya-2024/mayausd.mod"),
     "C:/Program Files/Autodesk/MayaUSD/Maya2024/0.28.0",  # ← 填入原 .mod 內記錄的安裝根目錄
 )
 ```
 
-改寫完成後，每個模組根目錄皆相對於 `mayaUSD.mod` 所在目錄（`./mayausd/...`），無論掛載於何處或複製至本機快取目錄，Maya 皆能正確定位。
+改寫完成後，每個模組根目錄皆相對於 `mayausd.mod` 所在目錄（`./mayausd/...`），無論掛載於何處或複製至本機快取目錄，Maya 皆能正確定位。
 
 ---
 
 ## 二、完整 `package.py` 程式碼
 
-在正式生產環境中，Maya-USD 自帶的 `mayaUSD.mod` 內部已經完整定義了該外掛專屬的 `PATH`、`PYTHONPATH`、`MAYA_PLUG_IN_PATH` 與 `PXR_PLUGINPATH_NAME`。
+在正式生產環境中，Maya-USD 自帶的 `mayausd.mod` 內部已經完整定義了該外掛專屬的 `PATH`、`PYTHONPATH`、`MAYA_PLUG_IN_PATH`、`PXR_PLUGINPATH_NAME` 以及 `PXR_USD_WINDOWS_DLL_PATH`。
 
-因此在 Rez 中**最乾淨且防止重複註冊的做法是直接宣告 `MAYA_MODULE_PATH`**，僅針對 Windows Python 3.8+ 特殊的獨立 Python 載入機制補上 `PXR_USD_WINDOWS_DLL_PATH`：
+因此在 Rez 中**最乾淨且防止重複註冊的做法是直接宣告 `MAYA_MODULE_PATH`，將環境變數控制權完全交由 Maya Module 機制**：
 
 ```python
 # -*- coding: utf-8 -*-
@@ -116,24 +121,16 @@ variants = [
 ]
 
 def commands():
-    # 1. 單一來源授權：透過 Maya Module (.mod) 管理完整外掛路徑
-    # 避免手動重複追加 MAYA_PLUG_IN_PATH 與 PYTHONPATH 導致雙重註冊或版本踩踏
+    # 單一來源授權：透過 Maya Module (.mod) 管理完整外掛路徑
+    # 避免手動重複追加 MAYA_PLUG_IN_PATH 與 PYTHONPATH 導致雙重註冊或版本踩踏。
+    # 由於 mayausd.mod 內部已原生宣告 PXR_USD_WINDOWS_DLL_PATH，
+    # 外部 package.py 嚴禁手動宣告，徹底防止該變數洩漏污染其他 DCC (如 Houdini / Solaris)。
     env.MAYA_MODULE_PATH.append("{root}")
-
-    # 2. Windows Python 3.8+ 專用 DLL 尋址補丁（供 mayapy / 獨立腳本使用）
-    # Python 3.8+ 在 Windows 上不再依賴 PATH 搜尋 .pyd 相依的 DLL，
-    # Pixar USD 官方設計透過 PXR_USD_WINDOWS_DLL_PATH 自動呼叫 os.add_dll_directory
-    if system.platform == "windows":
-        env.PXR_USD_WINDOWS_DLL_PATH.append("{root}/mayausd/USD/lib")
-        env.PXR_USD_WINDOWS_DLL_PATH.append("{root}/mayausd/MayaUSD/lib")
 ```
 
-> [!warning] `PXR_USD_WINDOWS_DLL_PATH` 的跨 DCC 副作用與隔離原則
-> 當系統定義了 `PXR_USD_WINDOWS_DLL_PATH` 變數時，Pixar USD 的 C++ 載入器在 Windows 下將**優先讀取該變數並停止從全域 `PATH` 尋址**。
-> 若在同一個 Rez Context 環境中同時載入 `maya_usd` 與 `houdini`，Houdini 內建的 USD 函式庫（`hython` / Solaris / Karma）也可能會讀取該變數，導致 Houdini 意外載入 Maya-USD 的 USD DLL，引發嚴重的二進位相容性崩潰。
-> **管線治理準則**：
-> 1. **嚴禁跨 DCC 混用外掛 Payload**：絕不要在同一個執行環境中同時請求 `maya_usd` 與 `houdini`。
-> 2. 若純粹在 Maya 內部作業（GUI 啟動），Maya 的 `.mod` 機制本就具備完整的 DLL 導向功能；若無需在外部透過獨立 Python 存取 `pxr`，亦可評估省略此變數以最大化隔離安全性。
+> [!important] 跨 DCC 零污染架構
+> 過去若在 `package.py` 內手動宣告全域 `PXR_USD_WINDOWS_DLL_PATH`，會導致 Windows 下的 Pixar USD C++ 函式庫全面停止尋址 `PATH`；若與 Houdini 混用環境，Houdini 內建的 USD 會被誤導載入 Maya-USD 的動態庫而崩潰。
+> **透過實體驗證確認 `mayausd.mod` 內部已原生自帶該變數宣告**，將其完全收斂於 Maya 進程內部，外部環境變數維持極致乾淨，徹底消除了跨 DCC 的 DLL 衝突風險！
 
 ---
 
