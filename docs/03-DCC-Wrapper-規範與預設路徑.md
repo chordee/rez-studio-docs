@@ -37,7 +37,7 @@ aliases:
 | :--- | :--- | :--- | :--- |
 | **SideFX Houdini** | 20.5.278 | `C:/Program Files/Side Effects Software/Houdini 20.5.278` | `/opt/hfs20.5.278` |
 | **Autodesk Maya** | 2024 | `C:/Program Files/Autodesk/Maya2024` | `/usr/autodesk/maya2024` |
-| **Foundry Nuke** | 15.1v1 | `C:/Program Files/Nuke15.1v1` | `/usr/local/Nuke15.1v1` |
+| **Foundry Nuke** | 15.1.1 (15.1v1) | `C:/Program Files/Nuke15.1v1` | `/usr/local/Nuke15.1v1` |
 
 ---
 
@@ -51,29 +51,27 @@ aliases:
 ### 2. 路徑分隔符一律使用正斜線 `/`
 Python 與 Rez 在 Windows 上處理正斜線 `/` 均十分穩定，避免使用反斜線 `\` 導致跳脫字元錯誤。
 
-### 3. 先檢驗安裝實體是否存在（Fail Fast）
-如果本機根本沒有安裝該版本的 DCC，Wrapper 應該直接發出清晰的警示並中斷解析：
+### 3. 執行期檢驗路徑（Fail Fast）
+如果本機根本沒有安裝該版本的 DCC，Wrapper 應呼叫 `stop()` 發出清晰的警示並中斷執行：
 ```python
 import os
 if not os.path.exists(dcc_root):
     stop(f"找不到指定的軟體安裝路徑: {dcc_root}")
 ```
+> [!note] `stop()` 的觸發時機
+> `commands()` 區塊是在**進入環境或執行指令時**才被直譯器執行。在中央派遣器使用 `rez-env -o job.rxt` 烘焙 Context 時並不會執行 `commands()`，因此派遣機本機未安裝 DCC 依然能成功計算相依性並導出 Context。`stop()` 會在農場節點實際載入環境時守門。
 
 ### 4. 嚴格定義根變數與二進位執行路徑
 - **Houdini**：必須注入 `HFS` 與 `PATH.prepend("{hfs}/bin")`。
 - **Maya**：必須注入 `MAYA_LOCATION` 與 `PATH.prepend("{maya}/bin")`。
 - **Nuke**：必須將安裝根目錄加入 `PATH`。
 
-### 5. 使用 Rez Rex API（`defined`）處理環境變數
-在 `commands()` 中檢查變數是否已經存在時，應使用 Rex API 提供的 `defined("VAR_NAME")`，避免使用 Python 原生字典比對導致的不一致性：
-```python
-if not defined("HOUDINI_PATH"):
-    env.HOUDINI_PATH = "&"
-```
+### 5. 避免在 Linux 上為 DCC 設定全域 `LD_LIBRARY_PATH`
+> [!caution] 依靠 RPATH 尋址，勿濫用 LD_LIBRARY_PATH
+> Houdini、Maya、Nuke 原廠二進位檔皆已內嵌正確的 ELF `RPATH` / `RUNPATH`，軟體啟動時會優先讀取自帶的 .so。若在 Wrapper 中對全域 `LD_LIBRARY_PATH` 進行 prepend，極易導致同環境中混用的其他軟體或外部工具發生 GCC / Qt / C++ Runtime 符號版本衝突（如 Segfault）。
 
-### 6. 避免無條件污染全域 `PYTHONPATH`
-> [!caution] 切勿將 DCC 內嵌 Python 任意注入全域環境
-> Maya、Houdini 各自攜帶特定編譯旗標與客製化版本的 Python（例如 Maya 帶有專屬的 `site-packages`）。若將 DCC 的 Python 目錄無條件加入全域 `PYTHONPATH`，當使用者在環境中同時執行其他系統工具時，極易引發二進位 ABI 不相容而崩潰（如 Segmentation Fault 或 DLL Load Failed）。DCC 內部模組應盡量限定在 DCC 自身啟動時由其內部環境讀取。
+### 6. 環境變數追加無需預先初始化為空字串
+在 Rez Rex API 中，當對一個尚未被賦值的環境變數直接執行 `append()` 或 `prepend()` 時，Rez 會自動將其直接設為該值。**切勿預先寫 `env.VAR = ""`**，否則路徑清單開頭會多出一個空字串（在 POSIX 下表現為多餘的開頭冒號 `:/path`，代表搜尋當前工作目錄，存在安全與路徑解析風險）。
 
 ---
 
@@ -90,6 +88,6 @@ X:/rez-system/packages/ (Linux: /mnt/x/rez-system/packages/)
 │   └── 2024/
 │       └── package.py
 └── nuke/
-    └── 15.1v1/
+    └── 15.1.1/
         └── package.py
 ```

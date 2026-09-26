@@ -81,7 +81,7 @@
       <text x="14" y="24" class="code-text" fill="#f8fafc">📦 packages/ (正式發布庫)</text>
       <text x="14" y="44" class="comment-text">• Wrapper: houdini, maya, nuke</text>
       <text x="14" y="62" class="comment-text">• Payload: htoa, maya_usd (cachable)</text>
-      <text x="14" y="80" class="comment-text">• 標準巢狀目錄: platform-win/h20.5.278</text>
+      <text x="14" y="80" class="comment-text">• 巢狀: platform-windows/houdini-20.5.278</text>
     </g>
   </g>
 

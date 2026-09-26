@@ -21,10 +21,11 @@ aliases:
 ### 1. 套件定義檔
 放置於：`X:/rez-system/packages/htoa/6.3.3.0/package.py`（Linux: `/mnt/x/rez-system/packages/htoa/6.3.3.0/package.py`）
 
-### 2. 實體目錄樹（Rez 標準巢狀變體階層）
+### 2. 實體目錄樹（對齊官方 HtoA 實際解壓結構）
 
-> [!important] ABI 相容性驗證
-> Autodesk 官方 HtoA 6.3.3.0 正式支援的 Houdini 20.5 系列 Build 為 **`20.5.278`**（亦有 20.0.751 / 19.5.805 等對應包）。在部署時必須下載官方標註支援該精確 Build 的壓縮包，解壓並對齊目錄。
+> [!important] ABI 相容性驗證與實體目錄
+> Autodesk 官方 HtoA 6.3.3.0 正式支援的 Houdini 20.5 系列 Build 為 **`20.5.278`**。
+> 官方 HtoA 解壓後的實際檔案分佈中，Arnold 核心二進位檔（`ai.dll` / `libai.so`）與 CLI 工具（`kick`, `maketx`）皆統一存放於 **`scripts/bin/`** 底下，並無獨立的 `arnold/bin/`。
 
 ```text
 X:/rez-system/packages/htoa/6.3.3.0/
@@ -32,22 +33,19 @@ X:/rez-system/packages/htoa/6.3.3.0/
 │
 ├── platform-windows/
 │   └── houdini-20.5.278/                       # Windows + H20.5.278 巢狀子目錄
-│       ├── arnold/
-│       │   ├── bin/ (kick.exe, maketx.exe, ai.dll)
-│       │   └── include/
-│       ├── dso/ (htoa.dll, arnold_dso.dll)
-│       ├── otls/ (arnold_operators.hda, arnold_vop.hda)
+│       ├── dso/                                # htoa.dll, arnold_dso.dll
+│       ├── otls/                               # arnold_operators.hda, arnold_vop.hda
 │       └── scripts/
-│           ├── bin/
-│           └── python/
+│           ├── bin/                            # kick.exe, maketx.exe, ai.dll
+│           └── python/                         # htoa 模組與 arnold.py
 │
 └── platform-linux/
     └── houdini-20.5.278/                       # Linux + H20.5.278 巢狀子目錄
-        ├── arnold/
-        │   └── bin/ (kick, maketx, libai.so)
-        ├── dso/ (htoa.so)
+        ├── dso/                                # htoa.so
         ├── otls/
         └── scripts/
+            ├── bin/                            # kick, maketx, libai.so
+            └── python/
 ```
 
 ---
@@ -78,8 +76,7 @@ variants = [
 tools = [
     "kick",
     "maketx",
-    "oiiotool",
-    "arnold"
+    "oiiotool"
 ]
 
 def commands():
@@ -89,24 +86,15 @@ def commands():
     # Houdini 啟動時會自動遍歷 {root} 底下的 dso, otls, scripts 等標準子資料夾。
     env.HOUDINI_PATH.prepend("{root}")
 
-    # 2. 注入 Arnold Core 獨立執行檔 (kick, maketx)
-    env.PATH.prepend("{root}/arnold/bin")
+    # 2. 注入 Arnold Core 獨立執行檔 (kick, maketx) 與 DLL 搜尋路徑
+    # 官方 HtoA 二進位檔均置於 scripts/bin
     env.PATH.prepend("{root}/scripts/bin")
 
-    # 3. 作業系統專屬動態函式庫路徑配置
-    if system.platform == "windows":
-        env.PATH.prepend("{root}/dso")
-    elif system.platform == "linux":
-        env.LD_LIBRARY_PATH.prepend("{root}/arnold/bin")
-        env.LD_LIBRARY_PATH.prepend("{root}/dso")
-
-    # 4. Python API 與輔助模組
+    # 3. Python API 與輔助模組
     env.PYTHONPATH.prepend("{root}/scripts/python")
 
-    # 5. Arnold 外掛與著色器搜尋路徑初始化 (使用 Rex API defined)
-    if not defined("ARNOLD_PLUGIN_PATH"):
-        env.ARNOLD_PLUGIN_PATH = ""
-    env.ARNOLD_PLUGIN_PATH.append("{root}/arnold/plugins")
+    # 4. Arnold 外掛與著色器搜尋路徑（無需預先空字串初始化，直接 append）
+    env.ARNOLD_PLUGIN_PATH.append("{root}/dso")
 ```
 
 ---
@@ -120,11 +108,10 @@ def commands():
   `X:/rez-system/packages/htoa/6.3.3.0/platform-windows/houdini-20.5.278;&`
 * 末端的 `&` 確保 Houdini 原生內部節點正常讀取，前面的 `{root}` 確保 Arnold 節點優先載入。
 
-### 2. 農場渲染指令相容性（Kick CLI）
-照明合成任務可直接利用 Arnold Standalone 引擎運算 `.ass` 檔案：
-```bash
-rez-env htoa-6.3.3.0 -- kick -i /mnt/x/jobs/scene.ass -o /mnt/x/renders/beauty.exr
-```
+### 2. Standalone Kick 算圖的依賴約束
+> [!important] 依賴相依提醒
+> 由於 `htoa` 的 variants 宣告了 `houdini-20.5.278`，因此執行 `rez-env htoa -- kick` 時，Rez 會**連帶解析出 Houdini Wrapper 套件**。
+> 這意味著純算圖節點若要使用 HtoA 內建的 `kick` 算圖，該節點本機也必須安裝有對應的 Houdini 軟體（否則會被 Houdini Wrapper 的 `stop()` 攔截）。若工作室需要完全脫離 Houdini 安裝的純 CPU/GPU 算圖節點，建議另外封裝獨立的 `arnold_core` 套件。
 
 ---
 
@@ -139,5 +126,5 @@ rez-env houdini-20.5.278 htoa-6.3.3.0 -- hython -c "import htoa; print('HtoA 載
 
 ### 2. 驗證 Arnold 獨立渲染引擎版本
 ```bash
-rez-env htoa-6.3.3.0 -- kick -info
+rez-env houdini-20.5.278 htoa-6.3.3.0 -- kick -info
 ```

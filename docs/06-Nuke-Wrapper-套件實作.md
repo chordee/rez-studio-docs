@@ -27,6 +27,9 @@ aliases:
 # -*- coding: utf-8 -*-
 name = "nuke"
 
+# 版本命名注意：
+# 若設定為 "15.1v1"，Rez 內部會將版本切分為 [15, "1v1"] 兩個 token。
+# 請求 "nuke-15.1" 會因 "1" != "1v1" 而找不到套件；必須請求精確的 "nuke-15.1v1" 或 "nuke-15"。
 version = "15.1v1"
 
 description = "Foundry Nuke DCC Wrapper Package (Default Installation)"
@@ -49,7 +52,7 @@ def commands():
     ver_str = str(this.version)
 
     # 1. 依據作業系統解析官方預設安裝路徑
-    # 注意：Foundry Nuke 的執行檔通常直接置於根目錄，無獨立 bin/ 資料夾
+    # Foundry Nuke 的主程式通常直接置於根目錄，無獨立 bin/ 資料夾
     if system.platform == "windows":
         nuke_root = f"C:/Program Files/Nuke{ver_str}"
     elif system.platform == "linux":
@@ -71,20 +74,12 @@ def commands():
     # 將 Nuke 根目錄置於 PATH 最前列
     env.PATH.prepend(nuke_root)
 
-    # 4. 初始化 Nuke 外掛與自訂 Gizmo 搜尋路徑 (NUKE_PATH，使用 Rex API defined)
-    if not defined("NUKE_PATH"):
-        env.NUKE_PATH = ""
-
-    # 5. Linux 專屬動態函式庫路徑配置
-    if system.platform == "linux":
-        env.LD_LIBRARY_PATH.prepend(nuke_root)
-
-    # 6. 命令列別名封裝 (Alias)
-    # 解決 Windows 執行檔名稱帶有版本號 (如 Nuke15.1.exe) 的調用差異
+    # 4. 命令列別名封裝 (Alias) 與批次執行注意事項
     major_minor = ".".join(ver_str.split("v")[0].split(".")[:2])
     
     if system.platform == "windows":
         exe_base = f"Nuke{major_minor}.exe"
+        # 互動式 shell 提供 doskey alias
         alias("nuke", f'"{nuke_root}/{exe_base}"')
         alias("nukex", f'"{nuke_root}/{exe_base}" --nukex')
         alias("nukestudio", f'"{nuke_root}/{exe_base}" --studio')
@@ -97,29 +92,36 @@ def commands():
 
 ---
 
-## 三、環境變數與架構設計說明
+## 三、環境變數與農場算圖陷阱
 
-1. **目錄結構特性（無獨立 `bin/`）**：
-   Foundry 官方安裝包將核心主程式 `Nuke15.1.exe`（Linux: `Nuke15.1`）以及眾多動態函式庫直接釋放在安裝根目錄下。因此必須將 `nuke_root` 本身加入 `PATH`。
-2. **`alias` 命令列別名封裝**：
-   官方執行檔常包含主版本號（例如 `Nuke15.1`），為了讓農場算圖腳本能統一以 `nuke -t` 或 `nukex` 觸發，Wrapper 內建建立了 `alias`，抹平指令名稱差異。
-3. **`NUKE_PATH` 堆疊機制**：
-   使用 Rex API `if not defined("NUKE_PATH")` 初始化後，後續的專案外掛只需執行 `env.NUKE_PATH.append(...)` 即可自動註冊 Gizmo 與選單腳本。
+1. **Windows `alias()` 在批次/農場下的失效陷阱**：
+   Rez 在 Windows cmd 環境下是透過 `doskey` 實作 alias。然而 **`doskey` 僅在互動式命令列下生效**。若在 Deadline、批次檔（.bat / .cmd）或無介面呼叫中執行 `rez-env nuke -- nuke -t`，Windows 會回報找不到 `nuke` 指令。
+   - **解法一（農場推薦）**：算圖排程系統提交時直接呼叫完整名稱（如 `Nuke15.1.exe -t`）。
+   - **解法二**：在 package 目錄下建立一個 `bin/nuke.cmd` 的 shim 腳本，將其加入 PATH 供系統自動調用。
+2. **Nuke 命令列參數 `-c` 誤區**：
+   > [!warning] Nuke 的 `-c` 不是執行 Python 字串
+   > 與標準 Python 的 `python -c "print(1)"` 不同，Nuke CLI 的 `-c <size>` 代表**設定快取記憶體大小（Cache Size）**。若要透過命令列執行 Python 腳本測試，必須建立一個實體 `.py` 檔案並以 `nuke -t test_script.py` 執行。
+3. **無須手動設定 `LD_LIBRARY_PATH`**：
+   Nuke 原廠自帶完整的 RPATH 尋址機制，避免手動 prepend `LD_LIBRARY_PATH` 造成與外部工具的動態函式庫衝突。
 
 ---
 
 ## 四、驗證測試指令
 
 ### 1. 終端機無介面（Terminal 模式）測試
-在 Windows 工作站或 Linux 農場節點執行：
+建立一個快速測試腳本並執行：
 
-```bash
-rez-env nuke-15.1v1 -- nuke -t -c "import nuke; print('Nuke Version:', nuke.NUKE_VERSION_STRING)"
+```powershell
+# 建立測試腳本
+Set-Content -Path "$env:TEMP\test_nuke.py" -Value "import nuke; print('Nuke 核心載入成功！版本:', nuke.NUKE_VERSION_STRING)"
+
+# 透過 rez-env 呼叫 Nuke Terminal 模式執行
+rez-env nuke-15.1v1 -- nuke -t "$env:TEMP\test_nuke.py"
 ```
 
 預期輸出：
 ```text
-Nuke Version: 15.1v1
+Nuke 核心載入成功！版本: 15.1v1
 ```
 
 ### 2. 農場渲染命令驗證

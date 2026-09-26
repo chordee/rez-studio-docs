@@ -21,11 +21,11 @@
 
 ### 1. 雙軌目錄分工：情境 A 與情境 B
 - **情境 A（Rez 執行核心 - `rez-client/venv`）**：
-  每台工作站與農場節點本機皆安裝獨立的 Rez Python 虛擬環境，提供 `rez-env`、`rez-build`、`rez-context` 等原生 CLI 指令。此設計可避免網路磁碟連線抖動導致終端指令完全停擺。
+  每台工作站與農場節點本機皆安裝獨立的 Rez Python 虛擬環境，提供 `rez`、`rez-env`、`rez-build`、`rez-context` 等原生 CLI 指令。此設計可避免網路磁碟連線抖動導致終端指令完全停擺。
 - **情境 B（個人本地測試套件庫 - `rez-client/packages`）**：
   提供給 Pipeline TD 或開發人員在本機開發、建置（`rez-build -i`）新套件。全域 `rezconfig.py` 將其置於 `packages_path` 第一順位，測試完成前不推入中央磁碟，杜絕改壞全公司環境的風險。一般美術電腦此目錄維持為空。
 
-### 2. Memcached 叢集加速解析
+### 2. Memcached 伺服器加速解析
 在大型專案或複雜外掛依賴下，Rez 解析（Resolve）需要對檔案系統進行大量的 stat 與讀取。透過指向 `192.168.0.221:11211`，所有解析結果與 package 定義會自動儲存於記憶體快取中，大幅提升工作站啟動速度，並避免算圖農場爆發式啟動時癱瘓 NAS。
 
 ### 3. 大型商業 DCC 採用 Wrapper 模式
@@ -40,7 +40,7 @@ Houdini、Maya 與 Nuke 等大型商業軟體若直接整包放入中央 NAS，�
 
 本系列筆記依據實施先後順序劃分如下：
 
-1. [01-中央伺服器與全域配置](docs/01-中央伺服器與全域配置.md)：中央儲存規劃、Memcached 配置與生產級 `rezconfig.py` 設定檔。
+1. [01-中央伺服器與全域配置](docs/01-中央伺服器與全域配置.md)：中央儲存規劃、基礎環境綁定（`rez-bind`）、Memcached 配置與生產級 `rezconfig.py` 設定檔。
 2. [02-客戶端與算圖農場部署](docs/02-客戶端與算圖農場部署.md)：工作站情境 A/B 部署、環境變數與農場 `.rxt` 派送流程。
 3. [03-DCC-Wrapper-規範與預設路徑](docs/03-DCC-Wrapper-規範與預設路徑.md)：商業軟體 Wrapper 機制、預設路徑對照矩陣與撰寫金律。
 4. [04-Houdini-Wrapper-套件實作](docs/04-Houdini-Wrapper-套件實作.md)：Houdini 跨平台 Wrapper `package.py` 完整程式碼與環境變數設定。

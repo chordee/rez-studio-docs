@@ -10,7 +10,7 @@ aliases:
 ---
 # 外掛 Payload 套件規範與 Variants 多維度變體機制
 
-本文檔解析 Rez 體系中與 Wrapper 完全相反的另一種核心套件型態：**實體負載套件（Payload Package / Self-contained Package）**。我們將透過外掛（Plugin）的維護視角，深入探討二進位相容性、`variants` 巢狀路徑規則、`cachable` 快取宣告，以及 `{root}` 動態路徑解析機制。
+本文檔解析 Rez 體系中與 Wrapper 完全相反的另一種核心套件型態：**實體負載套件（Payload Package / Self-contained Package）**。我們將透過外掛（Plugin）的維護視角，深入探討二進位相容性、`rez-bind` 基礎依賴、`variants` 巢狀路徑規則、`cachable` 快取宣告，以及 `{root}` 動態路徑解析機制。
 
 ---
 
@@ -32,7 +32,10 @@ aliases:
 1. 為 Houdini 20.5.278 編譯的 Arnold 外掛，**不能**載入到其他未相容的 Houdini build（可能觸發未定義符號錯誤或 Crash）。
 2. 在 Windows 上需要 `.dll`，在 Linux 上需要 `.so`。
 
-### Rez 的宣告語法
+### 1. 基礎相依性前提：`platform` 必須已綁定
+在套件中宣告 `platform-windows` 或 `platform-linux` 之前，中央儲存庫必須已執行過 `rez-bind platform arch os`（參見 [01-中央伺服器與全域配置](01-中央伺服器與全域配置.md)），否則解析時會報 `PackageFamilyNotFoundError: package family not found: platform`。
+
+### 2. Rez 的宣告語法
 
 在 `package.py` 中，透過一個二維陣列宣告該外掛所支援的宿主環境與平台組合：
 
@@ -49,7 +52,6 @@ variants = [
 
 > [!important] Rez 實體目錄的巢狀規則
 > Rez 在儲存套件變體時，**不會**將多個 requirement 透過底線串接為單一資料夾，而是依照 `variants` 宣告的 requirement 順序，在檔案系統中建立**巢狀子目錄（Nested Subpaths）**。
-> （註：若在全域或套件啟用 `hashed_variants = True`，則會改用 SHA1 Hash 作為目錄名稱）。
 
 ```text
 X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3.3.0/)
@@ -57,17 +59,19 @@ X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3
 │
 ├── platform-windows/                           # 第 1 層：作業系統
 │   └── houdini-20.5.278/                       # 第 2 層：宿主軟體 Build
-│       ├── arnold/                             # Arnold Core 核心函式庫與 kick.exe
-│       ├── dso/                                # htoa.dll, arnold_dso.dll
+│       ├── dso/                                # htoa.dll
 │       ├── otls/                               # Arnold 專屬 HDA 數位資產
-│       └── scripts/                            # Python 外掛腳本
+│       └── scripts/
+│           ├── bin/ (kick.exe, maketx.exe, ai.dll)
+│           └── python/
 │
 └── platform-linux/
     └── houdini-20.5.278/
-        ├── arnold/                             # libai.so, kick
         ├── dso/                                # htoa.so
         ├── otls/
         └── scripts/
+            ├── bin/ (kick, maketx, libai.so)
+            └── python/
 ```
 
 ---

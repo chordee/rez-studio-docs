@@ -38,7 +38,6 @@ cachable = False
 
 tools = [
     "maya",
-    "mayabatch",
     "mayapy",
     "Render"
 ]
@@ -71,17 +70,9 @@ def commands():
     # 將 Maya 的二進位執行檔目錄置頂
     env.PATH.prepend(f"{maya_root}/bin")
 
-    # 4. Linux 底層函式庫路徑配置
-    if system.platform == "linux":
-        env.LD_LIBRARY_PATH.prepend(f"{maya_root}/lib")
-
-    # 5. 外掛與模組搜尋路徑初始化 (使用 Rex API defined，供後續外掛如 Maya-USD 疊加)
-    if not defined("MAYA_MODULE_PATH"):
-        env.MAYA_MODULE_PATH = ""
-    if not defined("MAYA_PLUG_IN_PATH"):
-        env.MAYA_PLUG_IN_PATH = ""
-    if not defined("MAYA_SCRIPT_PATH"):
-        env.MAYA_SCRIPT_PATH = ""
+    # 4. Windows 專屬工具 alias (Linux 為原生 script)
+    if system.platform == "windows":
+        alias("mayabatch", f'"{maya_root}/bin/mayabatch.exe"')
 ```
 
 ---
@@ -91,9 +82,12 @@ def commands():
 1. **`MAYA_LOCATION` 的權威性**：
    Autodesk 原生工具、算圖指令 `Render` 與 Python 直譯器 `mayapy` 均高度依賴 `MAYA_LOCATION`。`mayapy` 啟動時會自動解析並組裝內部的 Python 環境，**無須手動將 Maya 內嵌 Python 加入全域 `PYTHONPATH`**，確保環境隔離。
 2. **`Render` 算圖入口支援**：
-   `Render` 是 Deadline 等農場派遣系統啟動 Maya 算圖任務（無論是 Arnold, VRay 還是 Software 渲染）的標準 CLI 入口。透過 `env.PATH.prepend("{maya_root}/bin")`，農場還原環境後可直接觸發 `Render`。
-3. **Rex API 初始化**：
-   使用 `if not defined("MAYA_MODULE_PATH")` 進行防禦性初始化，避免未定義變數引發的拼接異常。
+   `Render` 是 Deadline 等農場派遣系統啟動 Maya 算圖任務的標準 CLI 入口。透過 `env.PATH.prepend("{maya_root}/bin")`，農場還原環境後可直接觸發 `Render`。
+3. **`mayabatch` 與 Linux 差異**：
+   `mayabatch.exe` 僅存在於 Windows 平台的 Maya 安裝中；在 Linux 上執行無介面批次作業時，標準呼叫方式為 `maya -batch`。
+4. **移除 Linux `LD_LIBRARY_PATH` 與空字串初始化**：
+   - Maya 本身依賴自身的 RPATH 讀取庫檔，不應全域 prepend `LD_LIBRARY_PATH`。
+   - 諸如 `MAYA_MODULE_PATH` 等變數無需在 Wrapper 中預先初始化為空字串，外掛套件（如 Maya-USD）在首次 `append()` 時即可正確建立變數。
 
 ---
 
