@@ -85,14 +85,14 @@ def commands():
     # (A) 禁止讀取使用者的本機 houdini.env 檔案
     env.HOUDINI_NO_ENV_FILE = 1
 
-    # (B) 真實農場隔離策略：重定向 HOUDINI_USER_PREF_DIR
-    # 注意：HOUDINI_PACKAGE_DIR 只是追加目錄，Houdini 預設依然會掃描 $HOUDINI_USER_PREF_DIR/packages
-    # 因此在農場節點上，將使用者偏好目錄重定向至受控的乾淨暫存區，
-    # 徹底切斷本機 ~/houdiniX.X/packages 或自訂 otls 被 & 帶入農場的風險
-    if system.platform == "linux":
-        env.HOUDINI_USER_PREF_DIR = "/var/tmp/houdini_prefs/__HVER__"
-    else:
-        env.HOUDINI_USER_PREF_DIR = "C:/temp/houdini_prefs/__HVER__"
+    # (B) 條件式農場隔離策略：僅在算圖節點重定向 HOUDINI_USER_PREF_DIR
+    # 注意：HOUDINI_PACKAGE_DIR 只是追加目錄，Houdini 預設依然會掃描 $HOUDINI_USER_PREF_DIR/packages。
+    # 透過父環境的 STUDIO_FARM_NODE 變數識別農場節點（defined() 可正確讀取父環境）：
+    # - 美術工作站：維持預設家目錄（保留使用者個人的 Desktop、Shelf、Hotkey 等偏好設定）
+    # - 算圖農場：導向獨立受控暫存目錄，徹底切斷本機 ~/houdiniX.X/packages 被 & 帶入農場的風險
+    if defined("STUDIO_FARM_NODE"):
+        prefs_root = "/var/tmp/houdini_prefs" if system.platform == "linux" else "C:/temp/houdini_prefs"
+        env.HOUDINI_USER_PREF_DIR = f"{prefs_root}/__HVER__"
 ```
 
 ---
@@ -103,9 +103,12 @@ def commands():
    Houdini 所有內部工具、PySide 封裝及 HOM（Houdini Object Model）皆高度依賴 `HFS`。只要 `HFS` 與 `PATH` 設定完成，執行 `hython` 時系統會自動找到其內建的 Python 模組，**無須手動將內嵌 Python site-packages 強行塞入全域 `PYTHONPATH`**。
 2. **`HOUDINI_PATH = "&"` 無條件初始化**：
    末端的 `&` 代表保留 Houdini 原生路徑；後續的外掛（如 Arnold HtoA）在載入時執行 `env.HOUDINI_PATH.prepend("{root}")`，即可形成 `<htoa_root>;&` 的完美搜尋順序。
-3. **`HOUDINI_USER_PREF_DIR` 真正的農場隔離機制**：
+3. **`HOUDINI_USER_PREF_DIR` 條件式農場隔離機制**：
    SideFX 官方規格中，`HOUDINI_PACKAGE_DIR` 是**額外追加**搜尋目錄，無法阻止 Houdini 去讀取使用者的 `~/houdini20.5/packages/*.json`。
-   為了 100% 杜絕個人電腦上手動安裝的測試外掛污染農場，最佳實踐是將 `HOUDINI_USER_PREF_DIR` 重定向至 `/var/tmp/houdini_prefs/__HVER__`，使得農場節點上的 `&` 僅包含官方 HFS 預設內容與 Rez 顯式注入的外掛。
+   若無條件覆寫 `HOUDINI_USER_PREF_DIR`，會導致美術工作站每次啟動都被導向空目錄而遺失個人工具架與熱鍵，且在 Windows 上會造成多使用者共用同一暫存目錄。
+   因此透過 `if defined("STUDIO_FARM_NODE"):` 進行條件式隔離（`defined()` 可正確讀取父環境變數）：
+   - **工作站（美術）**：維持預設路徑，確保個人操作習慣與設定不被破壞。
+   - **算圖農場（Worker）**：由農場環境變數宣告 `STUDIO_FARM_NODE=1`，將偏好目錄重定向至受控的乾淨暫存區（`/var/tmp/houdini_prefs/__HVER__` 或 `C:/temp/houdini_prefs/__HVER__`），確保農場上的 `&` 絕不包含本機測試外掛。
 4. **移除無效的 `dsolib` 與 `LD_LIBRARY_PATH`**：
    - Windows 的 `custom/houdini/dsolib` 放的是 HDK 編譯專用的 `.lib` 靜態連結檔，非執行期 DLL。
    - Linux 版 Houdini 主程式自帶 ELF `RPATH`，無需手動 prepend `LD_LIBRARY_PATH`。

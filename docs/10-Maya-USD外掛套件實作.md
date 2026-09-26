@@ -31,7 +31,7 @@ X:/rez-system/packages/maya_usd/0.28.0/
 │
 ├── platform-windows/
 │   └── maya-2024/                              # Windows + Maya 2024 巢狀子目錄
-│       ├── mayaUsd.mod                         # Autodesk 模組定義檔
+│       ├── mayaUSD.mod                         # Autodesk 模組定義檔（CMake 標準命名）
 │       ├── mayausd/
 │       │   ├── MayaUSD/                        # MayaUSD 外掛本體 (plugin, scripts)
 │       │   └── USD/                            # Pixar USD 核心 dll, schemas, python
@@ -39,37 +39,59 @@ X:/rez-system/packages/maya_usd/0.28.0/
 │
 └── platform-linux/
     └── maya-2024/                              # Linux + Maya 2024 巢狀子目錄
-        ├── mayaUsd.mod
+        ├── mayaUSD.mod
         ├── mayausd/
         │   ├── MayaUSD/
         │   └── USD/
         └── ...
 ```
 
-### 3. 重要前置步驟：改寫 `mayaUsd.mod` 為相對路徑（保證可重定位）
+### 3. 重要前置步驟：改寫 `mayaUSD.mod` 為相對路徑（保證可重定位）
 
-Autodesk 官方安裝程式產生的 `mayaUsd.mod` 通常寫死本機絕對安裝路徑（如 `C:\Program Files\Autodesk\MayaUSD\...`）。
+CMake 建置產出的官方檔名為 **`mayaUSD.mod`**（Linux 系統區分大小寫，務必統一）。Autodesk 安裝程式產生的 `.mod` 通常寫死安裝位置的本機絕對路徑（如 `C:\Program Files\Autodesk\MayaUSD\...`）。
 當將外掛移至中央 NAS 套件庫（`X:/rez-system/...`）或啟用 `relocatable = True` 搭配 `cache_packages_path` 快取至本機 NVMe 時，寫死的絕對路徑會導致外掛依然讀取原安裝路徑，使重定位與快取完全失效。
 
-**在發布套件前，必須將 `mayaUsd.mod` 改寫為相對於 `.mod` 檔案自身的相對路徑**：
-```text
-+ MayaUSD 0.28.0 ./mayausd/MayaUSD
-icons: ../../icons
-plug-ins: ../../plugin/adsk/plugin
-scripts: ../../plugin/adsk/scripts
-resources: ../../plugin/adsk/resources
+> [!warning] Maya 模組語法規則與路徑陷阱
+> 參照官方模組範本（如 `mayaUSD_Win.mod.template`），一個完整的 Maya-USD 包含三大模組段落：
+> 1. `+ USD <USD_VERSION> <INSTALL_DIR>/mayausd/USD`
+> 2. `+ MayaUSD_LIB <MAYAUSD_VERSION> <INSTALL_DIR>/mayausd/MayaUSD`（在此定義核心 DLL `PATH+:=lib`、Python 模組 `PYTHONPATH+:=lib/python` 與 Schema `PXR_PLUGINPATH_NAME+:=lib/usd`）
+> 3. `+ MayaUSD <MAYAUSD_VERSION> <INSTALL_DIR>/mayausd/MayaUSD/plugin/adsk`（在此定義 `plug-ins: plugin`、`icons:` 等 UI 資源）
+> 
+> **關鍵語法規則**：`.mod` 內的 `icons:`、`plug-ins:`、`scripts:` 等子路徑，是**相對於各段 `+` 宣告的模組根目錄（Module Root Path），而非相對於 `.mod` 檔案本身**！且 `<USD_VERSION>` 等版本號是由建置系統注入的確切數值。
+> **正確做法**：絕不更動內部的模組定義或子路徑，**僅將每個 `+` 開頭行末尾的絕對安裝根目錄改為相對路徑（`./...`）**。
 
-+ USD 0.23.11 ./mayausd/USD
-icons: ../../icons
-plug-ins: ../../plugin/usd/lib/usd
+在發布套件前，執行以下 Python 腳本完成路徑相對化：
+
+```python
+import logging
+from pathlib import Path
+
+log = logging.getLogger(__name__)
+
+def relativize_mod(mod_file: Path, install_root: str) -> None:
+    root = install_root.replace("\\", "/").rstrip("/")
+    lines: list[str] = []
+    for line in mod_file.read_text(encoding="utf-8").splitlines():
+        if line.startswith("+") and root in line.replace("\\", "/"):
+            line = line.replace("\\", "/").replace(root, ".")
+            log.info("rewrote: %s", line)
+        lines.append(line)
+    mod_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+# 針對發布庫中的 mayaUSD.mod 進行相對路徑改寫
+relativize_mod(
+    Path("X:/rez-system/packages/maya_usd/0.28.0/platform-windows/maya-2024/mayaUSD.mod"),
+    "C:/Program Files/Autodesk/MayaUSD/Maya2024/0.28.0",  # ← 填入原 .mod 內記錄的安裝根目錄
+)
 ```
-修改為相對路徑後，無論套件被掛載於何處或被快取到本機快取目錄，Maya 都能自動依據 `.mod` 所在目錄正確解析子目錄。
+
+改寫完成後，每個模組根目錄皆相對於 `mayaUSD.mod` 所在目錄（`./mayausd/...`），無論掛載於何處或複製至本機快取目錄，Maya 皆能正確定位。
 
 ---
 
 ## 二、完整 `package.py` 程式碼
 
-在正式生產環境中，Maya-USD 自帶的 `mayaUsd.mod` 內部已經完整定義了該外掛專屬的 `PATH`、`PYTHONPATH`、`MAYA_PLUG_IN_PATH` 與 `PXR_PLUGINPATH_NAME`。
+在正式生產環境中，Maya-USD 自帶的 `mayaUSD.mod` 內部已經完整定義了該外掛專屬的 `PATH`、`PYTHONPATH`、`MAYA_PLUG_IN_PATH` 與 `PXR_PLUGINPATH_NAME`。
 
 因此在 Rez 中**最乾淨且防止重複註冊的做法是直接宣告 `MAYA_MODULE_PATH`**，僅針對 Windows Python 3.8+ 特殊的獨立 Python 載入機制補上 `PXR_USD_WINDOWS_DLL_PATH`：
 
@@ -129,7 +151,25 @@ def commands():
 
 ---
 
-## 四、深入驗證測試指令（修復 DAG Hierarchy）
+## 四、深入驗證測試指令
+
+### 1. 驗證 Module 註冊路徑（嚴格確認非本機絕對路徑）
+透過 `mayapy` 執行 `cmds.getModulePath(moduleName='MayaUSD')`，確認回傳的路徑為中央 NAS（`X:/...`）或本機快取目錄（`C:/rez-cache/...`），而非原始安裝的 `C:/Program Files/...` 絕對路徑：
+
+```powershell
+rez-env maya-2024 maya_usd-0.28.0 -- mayapy -c "
+import maya.standalone
+maya.standalone.initialize()
+import maya.cmds as cmds
+
+mod_path = cmds.getModulePath(moduleName='MayaUSD')
+print('MayaUSD Module Path:', mod_path)
+assert 'Program Files' not in mod_path, '錯誤：模組路徑依然指向本機安裝目錄而非 Rez 套件庫！'
+print('模組相對路徑重定位驗證成功！')
+"
+```
+
+### 2. 功能與節點階層驗證（修復 DAG Hierarchy）
 
 在驗證 Maya-USD 外掛時，若直接建立 `mayaUsdProxyShape`，Maya 會預設建立一個 `transform1` 作為父節點。因此在測試腳本中，**必須明確建立 Transform 父節點**，以驗證 UFE 與 Stage 正確繫結：
 
@@ -139,16 +179,16 @@ import maya.standalone
 maya.standalone.initialize()
 import maya.cmds as cmds
 
-# 1. 測試載入 Maya-USD 核心外掛
+# (A) 測試載入 Maya-USD 核心外掛
 cmds.loadPlugin('mayaUsdPlugin')
 print('Maya-USD 外掛載入成功！版本:', cmds.pluginInfo('mayaUsdPlugin', q=True, v=True))
 
-# 2. 正確建立 Transform 與 Proxy Shape 階層
+# (B) 正確建立 Transform 與 Proxy Shape 階層
 transNode = cmds.createNode('transform', name='testUsdStage')
 shapeNode = cmds.createNode('mayaUsdProxyShape', name='testUsdStageShape', parent=transNode)
 print('USD Proxy Shape 節點建立成功:', shapeNode)
 
-# 3. 測試 Python UFE 與 USD Stage 存取
+# (C) 測試 Python UFE 與 USD Stage 存取
 import mayaUsd.ufe
 stage = mayaUsd.ufe.getStage('|testUsdStage|testUsdStageShape')
 print('UFE Stage 取得正常:', stage)
@@ -157,8 +197,10 @@ print('UFE Stage 取得正常:', stage)
 
 預期輸出：
 ```text
+MayaUSD Module Path: X:/rez-system/packages/maya_usd/0.28.0/platform-windows/maya-2024/mayausd/MayaUSD/plugin/adsk
+模組相對路徑重定位驗證成功！
 Maya-USD 外掛載入成功！版本: 0.28.0
 USD Proxy Shape 節點建立成功: testUsdStageShape
 UFE Stage 取得正常: ...
 ```
-三項測試皆通過，方能確認 Maya、Maya-USD、UFE、二進位 DLL 及 Python API 皆已 100% 正確組裝。
+各項測試皆通過，方能確認 Maya、Maya-USD、UFE、二進位 DLL 及 Python API 皆已 100% 正確組裝且路徑重定位無誤。
