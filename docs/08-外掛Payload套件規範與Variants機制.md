@@ -21,7 +21,10 @@
 在影視工業中，C++ 外掛（例如 Arnold 的 `.dll` 或 `.so`）具有嚴格的 **二進位應用程式介面（ABI）相依性**：
 1. 為 Houdini 20.5.278 編譯的 Arnold 外掛，**不能**載入到其他未相容的 Houdini build（可能觸發未定義符號錯誤或 Crash）。
 2. 在 Windows 上需要 `.dll`，在 Linux 上需要 `.so`。
-3. **Linux 上的編譯器與 Python ABI 維度**：在 Linux 環境中，外掛不僅對齊 Houdini 版本，還區分 Python 版本（`HTOA_PY_SUFFIX`，如 `.py310`、`.py311`）與 GCC 版本（`HTOA_GCC_SUFFIX`，如 `_gcc9`、`_gcc11`）。放置於 Linux variant 目錄的 payload 必須與農場 Houdini 的 `houdini_platform_build` 完全匹配（Houdini 20.5 預設為 Python 3.11 + GCC 11.2）。
+3. **跨平台 Python 與編譯器 ABI 維度**：
+   - 外掛不僅對齊 Houdini 主程式與 Build 版本，還需精確匹配 Python 版本。官方 `Arnold.json` 內的 `HTOA_PY_SUFFIX`（如 `.py310`、`.py311`）條件判斷**並未限定作業系統，Windows 與 Linux 均適用**。
+   - 編譯器後綴（`HTOA_GCC_SUFFIX`，如 `_gcc9`、`_gcc11`）則主要為 Linux GCC 工具鏈所需。
+   - 放置於 variant 目錄的 payload 必須與機台實際安裝的 Houdini ABI 完全相符。**切勿主觀臆測特定版本（例如 H20.5）的預設編譯器或 Python 版本**，在部署前必須於目標節點執行 `hython -c "import hou; print(hou.applicationPlatformInfo())"` 實機查詢真實的 platform build 字串（Windows 輸出如 `windows-x86_64-cl19.xx`，Linux 輸出如 `linux-x86_64-gcc...`），並結合 Python 直譯器版本選取正確的 HtoA release。
 
 ### 1. 基礎相依性前提：`platform` 必須已綁定
 在套件中宣告 `platform-windows` 或 `platform-linux` 之前，中央儲存庫必須已依序執行過 `rez-bind platform`、`arch`、`os`（參見 [01-中央伺服器與全域配置](01-中央伺服器與全域配置.md)），否則解析時會報 `PackageFamilyNotFoundError: package family not found: platform`。
@@ -59,7 +62,7 @@ X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3
 │           └── python/
 │
 └── platform-linux/
-    └── houdini-20.5.278/                       # 需存放對齊農場 ABI 之 build (預設 Python 3.11 + GCC 11.2)
+    └── houdini-20.5.278/                       # 需存放對齊農場 ABI 之 build（以 hou.applicationPlatformInfo() 實查為準）
         ├── dso/                                # htoa.so
         ├── otls/
         └── scripts/
@@ -68,9 +71,9 @@ X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3
 ```
 
 > [!NOTE]
-> **Linux Variant 實體 Build 放置規範**
+> **Variant 實體 Build 放置與 ABI 驗證規範**
 >
-> 官方釋出之 Linux HtoA 包含多種 Python 及 GCC 組合（例如 `HtoA ... Linux (GCC 11.2) Python 3.11`）。在當前 `variants` 設計下，`platform-linux/houdini-20.5.278` 資料夾內必須精確放置與農場 Houdini `houdini_platform_build` 相符的二進位建置。若未來農場同時存在多種 Python 或 GCC 版本，則需在 variants 中進一步擴展相應維度。
+> 官方釋出的 HtoA 安裝套件包含多種 Python 及 GCC 組合（例如 `HtoA ... Linux (GCC 11.2) Python 3.11` 或特定 Windows Python build）。在當前 `variants` 設計下，各平台的 `houdini-20.5.278` 資料夾內必須放置與該平台 Houdini `hou.applicationPlatformInfo()` 完全吻合的二進位建置。若工作室未來在同一平台上混用多種 Python 或 GCC 版本，則需在 variants 中進一步擴展獨立維度（如 `python-3.11`）。
 
 ---
 

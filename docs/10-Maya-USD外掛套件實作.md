@@ -80,6 +80,26 @@ relativize_mod(
 
 改寫完成後，每個模組根目錄皆相對於 `mayausd.mod` 所在目錄（`./mayausd/...`），無論掛載於何處或複製至本機快取目錄，Maya 皆能正確定位。
 
+### 4. 模組載入優先序與雙重 Module 衝突防範（實機驗證）
+
+Maya 啟動時搜尋 `.mod` 模組檔案的預設順序為：
+1. `MAYA_MODULE_PATH` 環境變數所指定的路徑清單（最高優先權）
+2. 使用者偏好目錄（`~/maya/<version>/modules`）
+3. 系統全域共享模組目錄（Windows 為 `C:/Program Files/Common Files/Autodesk Shared/Modules/Maya/<version>`，Linux 為 `/usr/autodesk/modules/maya/<version>`）
+4. 軟體安裝目錄模組資料夾（`<MAYA_LOCATION>/modules`）
+
+> [!IMPORTANT]
+> **雙重 Module 優先權實測與部署規範**
+>
+> 若工作站或農場節點在安裝 Maya 時勾選了隨附的 MayaUSD，系統共享目錄（`Common Files`）便會存在一份本機的 `mayausd.mod`。此時若透過 Rez 載入環境，Maya 將同時面臨兩份同名模組宣告。
+>
+> **實機驗證（以 Maya 實測）**：
+> - 當 Rez 注入 `env.MAYA_MODULE_PATH.append("{root}")` 時，由於 `MAYA_MODULE_PATH` 優先權高於系統共享目錄，Maya 會優先載入 Rez 的模組。
+> - 在本機保留共享 `Common Files/.../mayausd.mod` 的狀態下執行 `cmds.getModulePath(moduleName='MayaUSD')`，確認回傳的是 Rez 套件路徑而非本機路徑（即後述的 `assert 'Program Files' not in mod_path` 順利通過），證明 Rez 能覆寫內建模組。
+>
+> **生產線部署規範**：
+> 雖然 Rez 在搜尋順序上具有優先權，但為避免工程混淆、杜絕環境變數未正確載入時意外回退至本機過期外掛，**強烈要求在安裝 Maya 時取消勾選隨附的 MayaUSD；若軟體已安裝，應由 IT/TD 腳本將系統共享目錄中的 `mayausd.mod` 移除或改名停用**。
+
 ---
 
 ## 二、完整 `package.py` 程式碼
@@ -119,7 +139,7 @@ def commands():
 > [!IMPORTANT]
 > **跨 DCC 零污染架構**
 >
-> 過去若在 `package.py` 內手動宣告全域 `PXR_USD_WINDOWS_DLL_PATH`，會導致 Windows 下的 Pixar USD C++ 函式庫全面停止尋址 `PATH`；若與 Houdini 混用環境，Houdini 內建的 USD 會被誤導載入 Maya-USD 的動態庫而崩潰。
+> 過去若在 `package.py` 內手動宣告全域 `PXR_USD_WINDOWS_DLL_PATH`，依據 OpenUSD 原始碼（`pxr/base/tf/__init__.py`），在 Windows 下 Python 會改由此變數指定的路徑呼叫 `os.add_dll_directory` 進行 DLL 目錄註冊，這主要影響 `import pxr` 的載入行為；若與 Houdini 混用環境，Houdini 內建的 USD 可能會被誤導載入 Maya-USD 的動態庫而引發崩潰或符號衝突。
 > **透過實體驗證確認 `mayausd.mod` 內部已原生自帶該變數宣告**，將其完全收斂於 Maya 進程內部，外部環境變數維持極致乾淨，徹底消除了跨 DCC 的 DLL 衝突風險！
 
 ---
@@ -139,6 +159,12 @@ def commands():
 ---
 
 ## 四、深入驗證測試指令
+
+> [!IMPORTANT]
+> **`mayapy` 呼叫順序規範：必須在 `maya.standalone.initialize()` 之後才 `import pxr`**
+>
+> 在 `mayapy` 批次環境中，`.mod` 檔案中所定義的各項環境變數（包含 `PATH`、`PYTHONPATH`、`PXR_USD_WINDOWS_DLL_PATH`）是在執行 `maya.standalone.initialize()` 時才會被 Maya 模組系統解析並套用進執行期環境。
+> 若測試或生產腳本在 `initialize()` **之前**就嘗試 `import pxr` 或 `import mayaUsd`，在 Windows 下 Python 尚未獲得由 `.mod` 注入的 DLL 尋址路徑，將直接噴出 `ImportError: DLL load failed`。因此腳本中必須嚴格遵守「先初始化 Standalone，後引用外掛模組」的調用順序。
 
 ### 1. 驗證 Module 註冊路徑（嚴格確認非本機絕對路徑）
 透過 `mayapy` 執行 `cmds.getModulePath(moduleName='MayaUSD')`，確認回傳的路徑為中央 NAS（`X:/...`）或本機快取目錄（`C:/rez-cache/...`），而非原始安裝的 `C:/Program Files/...` 絕對路徑：

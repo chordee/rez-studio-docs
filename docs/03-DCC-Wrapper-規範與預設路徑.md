@@ -29,6 +29,13 @@
 | **Autodesk Maya** | 2024 | `C:/Program Files/Autodesk/Maya2024` | `/usr/autodesk/maya2024` |
 | **Foundry Nuke** | 15.1.1 (對應 15.1v1) | `C:/Program Files/Nuke15.1v1` | `/usr/local/Nuke15.1v1` |
 
+> [!IMPORTANT]
+> **Maya 本機安裝與隨附外掛部署規範（防範 Module 雙重衝突）**
+>
+> Maya 預設的模組搜尋路徑包含系統共享目錄（Windows 為 `C:/Program Files/Common Files/Autodesk Shared/Modules/Maya/<ver>`）。
+> 若在工作站或農場節點安裝 Maya 時一併勾選了隨附的 MayaUSD 外掛，該共享目錄下會預先產生 `mayausd.mod`，導致 Maya 啟動時同時看見「Rez 套件庫」與「本機安裝」兩份同名模組。
+> 為確保環境純淨並避免版本混淆，**部署規範明確要求：安裝 Maya 時取消勾選內建的 MayaUSD，或在安裝後自本機共享 Modules 目錄中移除 `mayausd.mod`**（詳見 [10-Maya-USD外掛套件實作](10-Maya-USD外掛套件實作.md)）。
+
 ---
 
 ## 三、跨平台 Wrapper 撰寫七大金律
