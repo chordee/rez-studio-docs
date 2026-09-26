@@ -134,15 +134,16 @@ def commands():
     # 單一來源授權：透過 Maya Module (.mod) 管理完整外掛路徑
     # 避免手動重複追加 MAYA_PLUG_IN_PATH 與 PYTHONPATH 導致雙重註冊或版本踩踏。
     # 由於 mayausd.mod 內部已原生宣告 PXR_USD_WINDOWS_DLL_PATH，
-    # 外部 package.py 嚴禁手動宣告，徹底防止該變數洩漏污染其他 DCC (如 Houdini / Solaris)。
+    # 外部 package.py 不再手動宣告，避免在 Maya 啟動前污染同一個 Rez 環境。
+    # Maya 載入 .mod 後，該變數仍會由 Maya 進程及其子進程繼承。
     env.MAYA_MODULE_PATH.prepend("{root}")
 ```
 
 > [!IMPORTANT]
-> **跨 DCC 零污染架構**
+> **縮小跨 DCC 的環境污染範圍**
 >
 > 過去若在 `package.py` 內手動宣告全域 `PXR_USD_WINDOWS_DLL_PATH`，依據 OpenUSD 原始碼（`pxr/base/tf/__init__.py`），在 Windows 下 Python 會改由此變數指定的路徑呼叫 `os.add_dll_directory` 進行 DLL 目錄註冊，這主要影響 `import pxr` 的載入行為；若與 Houdini 混用環境，Houdini 內建的 USD 可能會被誤導載入 Maya-USD 的動態庫而引發崩潰或符號衝突。
-> **透過實體驗證確認 `mayausd.mod` 內部已原生自帶該變數宣告**，將其完全收斂於 Maya 進程內部，外部環境變數維持極致乾淨，徹底消除了跨 DCC 的 DLL 衝突風險！
+> **透過實體驗證確認 `mayausd.mod` 內部已原生自帶該變數宣告**，可將變數的首次注入延後到 Maya 載入模組時，避免污染 Maya 啟動前的 Rez 環境。但它只收斂於 Maya 進程及其子進程：若從 Maya 啟動 `hython`、submitter 或其他子行程，這些程序仍會繼承該變數，不能視為完全消除跨 DCC 的 DLL 衝突風險。此類子行程應建立乾淨環境或另行進入對應的 `rez-env`。
 
 ---
 

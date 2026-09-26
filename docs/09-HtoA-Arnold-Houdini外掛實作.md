@@ -12,11 +12,11 @@
 ### 2. 實體目錄樹與路徑規則
 
 > [!IMPORTANT]
-> **官方路徑設定與 ABI 配對說明**
+> **路徑設定與 ABI 配對說明**
 >
-> 1. **執行檔路徑依據**：官方套件設定（`Arnold.json`）將 `PATH` 指向 **`scripts/bin/`**，包含 Arnold CLI 工具（`kick`, `maketx`）與核心動態函式庫（`ai.dll` / `libai.so`）。因此在 Rez Payload 目錄中，執行檔與核心庫統一依此規範放置於 `scripts/bin/`。
+> 1. **執行檔路徑與內容依據**：可取得的社群 `Arnold.json` 複本只能證明 `PATH` 指向 **`scripts/bin/`**，不能證明該目錄包含哪些檔案。本文列出的 Arnold CLI 工具（`kick`, `maketx`）與核心動態函式庫（`ai.dll` / `libai.so`）位置，以對應版本官方安裝包的實際解壓結果為準；部署每個 release 時都必須重新核對。
 > 2. **Houdini 與 HtoA 版本配對**：本文以 HtoA 6.3.3.0 與 Houdini 20.5.278 作為示範配對案例。實際生產環境請依據工作室採用的具體 Houdini Production/Daily Build，下載官方釋出之完全對應 Build。
-> 3. **跨平台 Python 與編譯器 ABI 選型規範**：在官方 `Arnold.json` 中可見 `HTOA_PY_SUFFIX`（如 `.py310`、`.py311`）與 `HTOA_GCC_SUFFIX`（如 `_gcc9`、`_gcc11`）。其中 **`HTOA_PY_SUFFIX` 的條件判定並未限定作業系統，Windows 與 Linux 均適用**；`HTOA_GCC_SUFFIX` 則專屬於 Linux GCC 編譯器。安裝包必須與目標機台 Houdini 的 ABI 完全吻合。**切勿主觀臆測特定版本（如 H20.5）的預設編譯器或 Python 版本**，必須於目標機台執行 `hython -c "import hou; print(hou.applicationPlatformInfo())"` 實機查詢真實的 platform build 字串（Windows 輸出如 `windows-x86_64-cl19.xx`，Linux 輸出如 `linux-x86_64-gcc...`），並比對 Python 直譯器版本，再下載放置完全相符的 HtoA release，否則載入 DSO 時將引發二進位不相容崩潰。
+> 3. **跨平台 Python 與編譯器 ABI 選型規範**：在 `Arnold.json` 範例中可見 `HTOA_PY_SUFFIX`（如 `.py310`、`.py311`）與 `HTOA_GCC_SUFFIX`（如 `_gcc9`、`_gcc11`）。其中 **`HTOA_PY_SUFFIX` 的條件判定並未限定作業系統，Windows 與 Linux 均適用**；`HTOA_GCC_SUFFIX` 則專屬於 Linux GCC 編譯器。安裝包必須與目標機台 Houdini 的 ABI 完全吻合。**切勿主觀臆測特定版本（如 H20.5）的預設編譯器或 Python 版本**，必須於目標機台執行 `hython -c "import hou; print(hou.applicationPlatformInfo())"` 實機查詢真實的 platform build 字串（Windows 輸出如 `windows-x86_64-cl19.xx`，Linux 輸出如 `linux-x86_64-gcc...`），並比對 Python 直譯器版本，再下載放置完全相符的 HtoA release，否則載入 DSO 時將引發二進位不相容崩潰。
 
 ```text
 X:/rez-system/packages/htoa/6.3.3.0/
@@ -89,7 +89,7 @@ def commands():
     env.HOUDINI_PATH.prepend("{root}")
 
     # 2. 注入 Arnold Core 獨立執行檔 (kick, maketx) 與動態庫搜尋路徑
-    # 官方套件設定 (Arnold.json) 將 PATH 指向 scripts/bin
+    # Arnold.json 範例將 PATH 指向 scripts/bin；實際內容以官方安裝包解壓結果為準
     env.PATH.prepend("{root}/scripts/bin")
 
     # 3. Python API 與輔助模組
