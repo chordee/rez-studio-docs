@@ -10,7 +10,7 @@ aliases:
 ---
 # Houdini Wrapper 套件跨平台實作指南
 
-本文檔提供 SideFX Houdini 在混合作業系統下的標準 Wrapper `package.py` 實作程式碼，支援 Windows 藝術家工作站與 Linux/Windows 算圖農場節點，並包含完整的環境隔離防護。
+本文檔提供 SideFX Houdini 在混合作業系統下的標準 Wrapper `package.py` 實作程式碼，支援 Windows 藝術家工作站與 Linux/Windows 算圖農場節點，並包含農場級的真實環境隔離機制。
 
 ---
 
@@ -78,17 +78,21 @@ def commands():
 
     # 4. HOUDINI_PATH 基礎錨點：無條件設定為 "&"
     # 注意：絕對不可用 if not defined() 判斷！
-    # 若外層環境已存在 HOUDINI_PATH，一旦判斷為 True 導致此處未設定，
-    # 後續外掛 (如 htoa) 的 prepend 動作會被 Rez 判定為該變數的初次賦值而覆寫全域，
-    # 導致 "&" 遺失、Houdini 原生節點全部消失。因此此處必須無條件重設為 "&"。
+    # 避免外層環境變數導致判斷跳過，使後續外掛 prepend 覆寫丟失末端 "&"
     env.HOUDINI_PATH = "&"
 
-    # 5. 生產環境嚴格隔離防護 (防止使用者本地檔案污染農場)
-    # 禁止讀取使用者的本機 houdini.env 檔案
+    # 5. 生產環境嚴格隔離防護
+    # (A) 禁止讀取使用者的本機 houdini.env 檔案
     env.HOUDINI_NO_ENV_FILE = 1
-    
-    # 限制 package json 搜尋路徑，避免使用者個人目錄下 (如 ~/houdini20.5/packages) 的舊外掛被偷偷載入
-    env.HOUDINI_PACKAGE_DIR = f"{hfs_root}/packages"
+
+    # (B) 真實農場隔離策略：重定向 HOUDINI_USER_PREF_DIR
+    # 注意：HOUDINI_PACKAGE_DIR 只是追加目錄，Houdini 預設依然會掃描 $HOUDINI_USER_PREF_DIR/packages
+    # 因此在農場節點上，將使用者偏好目錄重定向至受控的乾淨暫存區，
+    # 徹底切斷本機 ~/houdiniX.X/packages 或自訂 otls 被 & 帶入農場的風險
+    if system.platform == "linux":
+        env.HOUDINI_USER_PREF_DIR = "/var/tmp/houdini_prefs/__HVER__"
+    else:
+        env.HOUDINI_USER_PREF_DIR = "C:/temp/houdini_prefs/__HVER__"
 ```
 
 ---
@@ -99,11 +103,12 @@ def commands():
    Houdini 所有內部工具、PySide 封裝及 HOM（Houdini Object Model）皆高度依賴 `HFS`。只要 `HFS` 與 `PATH` 設定完成，執行 `hython` 時系統會自動找到其內建的 Python 模組，**無須手動將內嵌 Python site-packages 強行塞入全域 `PYTHONPATH`**。
 2. **`HOUDINI_PATH = "&"` 無條件初始化**：
    末端的 `&` 代表保留 Houdini 原生路徑；後續的外掛（如 Arnold HtoA）在載入時執行 `env.HOUDINI_PATH.prepend("{root}")`，即可形成 `<htoa_root>;&` 的完美搜尋順序。
-3. **隔離本機 `houdini.env` 與 `packages/`**：
-   美術人員常在本機手動安裝各類測試外掛，這些配置若未被 Rez 接管，會造成「美術本機可開，農場算圖噴錯」的經典不一致問題。透過 `HOUDINI_NO_ENV_FILE=1` 與鎖定 `HOUDINI_PACKAGE_DIR`，強制所有外掛必須由 Rez 控制。
-4. **移除多餘的 `dsolib` 與 `LD_LIBRARY_PATH`**：
-   - Windows 的 `custom/houdini/dsolib` 放的是 HDK 編譯專用的 `.lib` 靜態連結檔，非執行期 DLL，加入 `PATH` 無實質意義。
-   - Linux 版 Houdini 主程式自帶 ELF `RPATH`，無需手動 prepend `LD_LIBRARY_PATH`，避免與系統庫或其它 DCC 混用時發生衝突。
+3. **`HOUDINI_USER_PREF_DIR` 真正的農場隔離機制**：
+   SideFX 官方規格中，`HOUDINI_PACKAGE_DIR` 是**額外追加**搜尋目錄，無法阻止 Houdini 去讀取使用者的 `~/houdini20.5/packages/*.json`。
+   為了 100% 杜絕個人電腦上手動安裝的測試外掛污染農場，最佳實踐是將 `HOUDINI_USER_PREF_DIR` 重定向至 `/var/tmp/houdini_prefs/__HVER__`，使得農場節點上的 `&` 僅包含官方 HFS 預設內容與 Rez 顯式注入的外掛。
+4. **移除無效的 `dsolib` 與 `LD_LIBRARY_PATH`**：
+   - Windows 的 `custom/houdini/dsolib` 放的是 HDK 編譯專用的 `.lib` 靜態連結檔，非執行期 DLL。
+   - Linux 版 Houdini 主程式自帶 ELF `RPATH`，無需手動 prepend `LD_LIBRARY_PATH`。
 
 ---
 

@@ -33,7 +33,7 @@ aliases:
 2. 在 Windows 上需要 `.dll`，在 Linux 上需要 `.so`。
 
 ### 1. 基礎相依性前提：`platform` 必須已綁定
-在套件中宣告 `platform-windows` 或 `platform-linux` 之前，中央儲存庫必須已執行過 `rez-bind platform arch os`（參見 [01-中央伺服器與全域配置](01-中央伺服器與全域配置.md)），否則解析時會報 `PackageFamilyNotFoundError: package family not found: platform`。
+在套件中宣告 `platform-windows` 或 `platform-linux` 之前，中央儲存庫必須已依序執行過 `rez-bind platform`、`arch`、`os`（參見 [01-中央伺服器與全域配置](01-中央伺服器與全域配置.md)），否則解析時會報 `PackageFamilyNotFoundError: package family not found: platform`。
 
 ### 2. Rez 的宣告語法
 

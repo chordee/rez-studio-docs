@@ -46,13 +46,32 @@ X:/rez-system/packages/maya_usd/0.28.0/
         └── ...
 ```
 
+### 3. 重要前置步驟：改寫 `mayaUsd.mod` 為相對路徑（保證可重定位）
+
+Autodesk 官方安裝程式產生的 `mayaUsd.mod` 通常寫死本機絕對安裝路徑（如 `C:\Program Files\Autodesk\MayaUSD\...`）。
+當將外掛移至中央 NAS 套件庫（`X:/rez-system/...`）或啟用 `relocatable = True` 搭配 `cache_packages_path` 快取至本機 NVMe 時，寫死的絕對路徑會導致外掛依然讀取原安裝路徑，使重定位與快取完全失效。
+
+**在發布套件前，必須將 `mayaUsd.mod` 改寫為相對於 `.mod` 檔案自身的相對路徑**：
+```text
++ MayaUSD 0.28.0 ./mayausd/MayaUSD
+icons: ../../icons
+plug-ins: ../../plugin/adsk/plugin
+scripts: ../../plugin/adsk/scripts
+resources: ../../plugin/adsk/resources
+
++ USD 0.23.11 ./mayausd/USD
+icons: ../../icons
+plug-ins: ../../plugin/usd/lib/usd
+```
+修改為相對路徑後，無論套件被掛載於何處或被快取到本機快取目錄，Maya 都能自動依據 `.mod` 所在目錄正確解析子目錄。
+
 ---
 
 ## 二、完整 `package.py` 程式碼
 
 在正式生產環境中，Maya-USD 自帶的 `mayaUsd.mod` 內部已經完整定義了該外掛專屬的 `PATH`、`PYTHONPATH`、`MAYA_PLUG_IN_PATH` 與 `PXR_PLUGINPATH_NAME`。
 
-因此在 Rez 中**最乾淨且防止重複註冊的做法是直接宣告 `MAYA_MODULE_PATH`**，僅針對 Windows Python 3.8+ 特殊的 DLL 載入機制補上 `PXR_USD_WINDOWS_DLL_PATH`：
+因此在 Rez 中**最乾淨且防止重複註冊的做法是直接宣告 `MAYA_MODULE_PATH`**，僅針對 Windows Python 3.8+ 特殊的獨立 Python 載入機制補上 `PXR_USD_WINDOWS_DLL_PATH`：
 
 ```python
 # -*- coding: utf-8 -*-
@@ -79,13 +98,20 @@ def commands():
     # 避免手動重複追加 MAYA_PLUG_IN_PATH 與 PYTHONPATH 導致雙重註冊或版本踩踏
     env.MAYA_MODULE_PATH.append("{root}")
 
-    # 2. Windows Python 3.8+ 專用 DLL 尋址補丁
+    # 2. Windows Python 3.8+ 專用 DLL 尋址補丁（供 mayapy / 獨立腳本使用）
     # Python 3.8+ 在 Windows 上不再依賴 PATH 搜尋 .pyd 相依的 DLL，
     # Pixar USD 官方設計透過 PXR_USD_WINDOWS_DLL_PATH 自動呼叫 os.add_dll_directory
     if system.platform == "windows":
         env.PXR_USD_WINDOWS_DLL_PATH.append("{root}/mayausd/USD/lib")
         env.PXR_USD_WINDOWS_DLL_PATH.append("{root}/mayausd/MayaUSD/lib")
 ```
+
+> [!warning] `PXR_USD_WINDOWS_DLL_PATH` 的跨 DCC 副作用與隔離原則
+> 當系統定義了 `PXR_USD_WINDOWS_DLL_PATH` 變數時，Pixar USD 的 C++ 載入器在 Windows 下將**優先讀取該變數並停止從全域 `PATH` 尋址**。
+> 若在同一個 Rez Context 環境中同時載入 `maya_usd` 與 `houdini`，Houdini 內建的 USD 函式庫（`hython` / Solaris / Karma）也可能會讀取該變數，導致 Houdini 意外載入 Maya-USD 的 USD DLL，引發嚴重的二進位相容性崩潰。
+> **管線治理準則**：
+> 1. **嚴禁跨 DCC 混用外掛 Payload**：絕不要在同一個執行環境中同時請求 `maya_usd` 與 `houdini`。
+> 2. 若純粹在 Maya 內部作業（GUI 啟動），Maya 的 `.mod` 機制本就具備完整的 DLL 導向功能；若無需在外部透過獨立 Python 存取 `pxr`，亦可評估省略此變數以最大化隔離安全性。
 
 ---
 

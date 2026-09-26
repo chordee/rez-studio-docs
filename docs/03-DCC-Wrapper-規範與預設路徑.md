@@ -33,15 +33,15 @@ aliases:
 
 在我們的模擬情境中，工作機與農場所有節點均嚴格採用官方標準預設安裝路徑：
 
-| 軟體名稱 | 版本範例 | Windows 官方預設安裝路徑 | Linux 官方預設安裝路徑 |
+| 軟體名稱 | Rez 套件版本 | Windows 官方預設安裝路徑 | Linux 官方預設安裝路徑 |
 | :--- | :--- | :--- | :--- |
 | **SideFX Houdini** | 20.5.278 | `C:/Program Files/Side Effects Software/Houdini 20.5.278` | `/opt/hfs20.5.278` |
 | **Autodesk Maya** | 2024 | `C:/Program Files/Autodesk/Maya2024` | `/usr/autodesk/maya2024` |
-| **Foundry Nuke** | 15.1.1 (15.1v1) | `C:/Program Files/Nuke15.1v1` | `/usr/local/Nuke15.1v1` |
+| **Foundry Nuke** | 15.1.1 (對應 15.1v1) | `C:/Program Files/Nuke15.1v1` | `/usr/local/Nuke15.1v1` |
 
 ---
 
-## 三、跨平台 Wrapper 撰寫六大金律
+## 三、跨平台 Wrapper 撰寫七大金律
 
 在撰寫 Wrapper 的 `package.py` 時，必須嚴格遵守以下標準：
 
@@ -64,14 +64,20 @@ if not os.path.exists(dcc_root):
 ### 4. 嚴格定義根變數與二進位執行路徑
 - **Houdini**：必須注入 `HFS` 與 `PATH.prepend("{hfs}/bin")`。
 - **Maya**：必須注入 `MAYA_LOCATION` 與 `PATH.prepend("{maya}/bin")`。
-- **Nuke**：必須將安裝根目錄加入 `PATH`。
+- **Nuke**：必須將安裝根目錄加入 `PATH`，並為 Windows 提供 `bin/*.cmd` 實體 shim。
 
-### 5. 避免在 Linux 上為 DCC 設定全域 `LD_LIBRARY_PATH`
-> [!caution] 依靠 RPATH 尋址，勿濫用 LD_LIBRARY_PATH
-> Houdini、Maya、Nuke 原廠二進位檔皆已內嵌正確的 ELF `RPATH` / `RUNPATH`，軟體啟動時會優先讀取自帶的 .so。若在 Wrapper 中對全域 `LD_LIBRARY_PATH` 進行 prepend，極易導致同環境中混用的其他軟體或外部工具發生 GCC / Qt / C++ Runtime 符號版本衝突（如 Segfault）。
+### 5. 理解 Rez 變數初次賦值的覆寫行為
+> [!important] 變數覆寫機制與 HOUDINI_PATH
+> 在 Rez 體系中，**當一個 Context 第一次對某環境變數執行操作時，即使使用者的父環境中已存在該變數，Rez 也會直接將其覆寫**（除非該變數已在全域設定檔的 `parent_variables` 中聲明繼承）。
+> 這也是為什麼在 Houdini Wrapper 中，**絕對不能寫 `if not defined("HOUDINI_PATH")`**；若判斷為 True 而跳過，後續外掛（如 HtoA）的 `prepend` 會被視為首次操作而直接覆寫全域，導致末端的 `&` 消失、原生節點全滅。因此基礎變數必須由宿主 Wrapper 無條件指定預設值。
 
-### 6. 環境變數追加無需預先初始化為空字串
-在 Rez Rex API 中，當對一個尚未被賦值的環境變數直接執行 `append()` 或 `prepend()` 時，Rez 會自動將其直接設為該值。**切勿預先寫 `env.VAR = ""`**，否則路徑清單開頭會多出一個空字串（在 POSIX 下表現為多餘的開頭冒號 `:/path`，代表搜尋當前工作目錄，存在安全與路徑解析風險）。
+### 6. 切勿將 DCC 內嵌 Python 任意注入全域 `PYTHONPATH`
+> [!caution] 避免全域 Python 環境污染
+> Maya、Houdini 各自攜帶特定編譯旗標與客製化版本的 Python（例如 Maya 帶有專屬的 `site-packages`）。若將 DCC 的 Python 目錄無條件加入全域 `PYTHONPATH`，當使用者在環境中同時執行其他系統工具時，極易引發二進位 ABI 不相容而崩潰（如 Segmentation Fault 或 DLL Load Failed）。DCC 內部模組應盡量限定在 DCC 自身啟動時由其內部環境讀取。
+
+### 7. 依靠 RPATH 尋址，勿在 Linux 濫用 `LD_LIBRARY_PATH`
+> [!caution] 避免動態函式庫符號踩踏
+> Houdini、Maya、Nuke 原廠二進位檔皆已內嵌正確的 ELF `RPATH` / `RUNPATH`，軟體啟動時會優先讀取自帶的 .so。若在 Wrapper 中對全域 `LD_LIBRARY_PATH` 進行 prepend，極易導致同環境中混用的其他軟體或外部工具發生 GCC / Qt / C++ Runtime 符號版本衝突。
 
 ---
 
@@ -89,5 +95,9 @@ X:/rez-system/packages/ (Linux: /mnt/x/rez-system/packages/)
 │       └── package.py
 └── nuke/
     └── 15.1.1/
-        └── package.py
+        ├── package.py
+        └── bin/
+            ├── nuke.cmd
+            ├── nukex.cmd
+            └── nukestudio.cmd
 ```

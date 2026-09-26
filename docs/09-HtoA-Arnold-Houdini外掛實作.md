@@ -93,8 +93,10 @@ def commands():
     # 3. Python API 與輔助模組
     env.PYTHONPATH.prepend("{root}/scripts/python")
 
-    # 4. Arnold 外掛與著色器搜尋路徑（無需預先空字串初始化，直接 append）
-    env.ARNOLD_PLUGIN_PATH.append("{root}/dso")
+    # 4. 注意：切勿將 {root}/dso 加入 ARNOLD_PLUGIN_PATH！
+    # dso/ 內存放的是 Houdini 的 DSO 二進位檔（htoa.dll / htoa.so），已由 HOUDINI_PATH 自動載入。
+    # 若加入 ARNOLD_PLUGIN_PATH，Arnold 會嘗試將其當成 Arnold 外掛載入而引發 Warning 或 Crash。
+    # HtoA 自身會處理內建外掛路徑，ARNOLD_PLUGIN_PATH 應保留給工作室自製著色器套件。
 ```
 
 ---
