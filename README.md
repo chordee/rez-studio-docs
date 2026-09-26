@@ -23,7 +23,7 @@
 - **情境 A（Rez 執行核心 - `rez-client/venv`）**：
   每台工作站與農場節點本機皆安裝獨立的 Rez Python 虛擬環境，提供 `rez`、`rez-env`、`rez-build`、`rez-context` 等原生 CLI 指令。此設計可避免網路磁碟連線抖動導致終端指令完全停擺。
 - **情境 B（個人本地測試套件庫 - `rez-client/packages`）**：
-  提供給 Pipeline TD 或開發人員在本機開發、建置（`rez-build -i`）新套件。全域 `rezconfig.py` 將其置於 `packages_path` 第一順位，測試完成前不推入中央磁碟，杜絕改壞全公司環境的風險。一般美術電腦此目錄維持為空。
+  僅供 Pipeline TD 或開發人員在本機開發、建置（`rez-build -i`）新套件。只有明確設定 `STUDIO_REZ_DEV=1` 的帳號，中央 `rezconfig.py` 才會將此目錄置於 `packages_path` 第一順位；一般美術與農場帳號不建立、不搜尋本機開發庫。
 
 ### 2. Memcached 伺服器加速解析
 在大型專案或複雜外掛依賴下，Rez 解析（Resolve）需要對檔案系統進行大量的 stat 與讀取。透過指向 `192.168.0.221:11211`，所有解析結果與 package 定義會自動儲存於記憶體快取中，大幅提升工作站啟動速度，並避免算圖農場爆發式啟動時癱瘓 NAS。

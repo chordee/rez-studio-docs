@@ -82,11 +82,13 @@ relativize_mod(
 
 ### 4. 模組載入優先序與雙重 Module 衝突防範（實機驗證）
 
-Maya 啟動時搜尋 `.mod` 模組檔案的預設順序為：
-1. `MAYA_MODULE_PATH` 環境變數所指定的路徑清單（最高優先權）
-2. 使用者偏好目錄（`~/maya/<version>/modules`）
-3. 系統全域共享模組目錄（Windows 為 `C:/Program Files/Common Files/Autodesk Shared/Modules/Maya/<version>`，Linux 為 `/usr/autodesk/modules/maya/<version>`）
-4. 軟體安裝目錄模組資料夾（`<MAYA_LOCATION>/modules`）
+Maya 啟動時會先搜尋 `MAYA_MODULE_PATH` 額外加入的路徑，再搜尋平台預設路徑。額外路徑依環境變數中的排列順序處理；為確保 Rez 套件優先，本文使用 `prepend()` 將 `{root}` 放在最前面。
+
+Autodesk 文件列出的 Windows/Linux 預設路徑順序為：
+1. 軟體安裝目錄模組資料夾（`<MAYA_LOCATION>/modules`）
+2. 使用者版本目錄（Windows：`~/Documents/maya/<version>/modules`；Linux：`~/maya/<version>/modules`）
+3. 使用者共用目錄（Windows：`~/Documents/maya/modules`；Linux：`~/maya/modules`）
+4. 系統全域共享模組目錄（Windows：`C:/Program Files/Common Files/Autodesk Shared/Modules/maya/<version>`；Linux：`/usr/autodesk/modules/maya/<version>` 與 `/usr/autodesk/modules/maya`）
 
 > [!IMPORTANT]
 > **雙重 Module 優先權實測與部署規範**
@@ -94,7 +96,7 @@ Maya 啟動時搜尋 `.mod` 模組檔案的預設順序為：
 > 若工作站或農場節點在安裝 Maya 時勾選了隨附的 MayaUSD，系統共享目錄（`Common Files`）便會存在一份本機的 `mayausd.mod`。此時若透過 Rez 載入環境，Maya 將同時面臨兩份同名模組宣告。
 >
 > **實機驗證（以 Maya 實測）**：
-> - 當 Rez 注入 `env.MAYA_MODULE_PATH.append("{root}")` 時，由於 `MAYA_MODULE_PATH` 優先權高於系統共享目錄，Maya 會優先載入 Rez 的模組。
+> - 當 Rez 注入 `env.MAYA_MODULE_PATH.prepend("{root}")` 時，Rez 路徑位於所有額外模組路徑與平台預設路徑之前，Maya 會優先載入 Rez 的模組。
 > - 在本機保留共享 `Common Files/.../mayausd.mod` 的狀態下執行 `cmds.getModulePath(moduleName='MayaUSD')`，確認回傳的是 Rez 套件路徑而非本機路徑（即後述的 `assert 'Program Files' not in mod_path` 順利通過），證明 Rez 能覆寫內建模組。
 >
 > **生產線部署規範**：
@@ -133,7 +135,7 @@ def commands():
     # 避免手動重複追加 MAYA_PLUG_IN_PATH 與 PYTHONPATH 導致雙重註冊或版本踩踏。
     # 由於 mayausd.mod 內部已原生宣告 PXR_USD_WINDOWS_DLL_PATH，
     # 外部 package.py 嚴禁手動宣告，徹底防止該變數洩漏污染其他 DCC (如 Houdini / Solaris)。
-    env.MAYA_MODULE_PATH.append("{root}")
+    env.MAYA_MODULE_PATH.prepend("{root}")
 ```
 
 > [!IMPORTANT]

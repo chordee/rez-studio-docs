@@ -24,20 +24,31 @@ X:/rez-system/packages/htoa/6.3.3.0/
 │
 ├── platform-windows/
 │   └── houdini-20.5.278/                       # Windows + H20.5.278 巢狀子目錄
+│       ├── config/                             # UI、Icon 與外掛設定
 │       ├── dso/                                # htoa.dll, arnold_dso.dll
 │       ├── otls/                               # arnold_operators.hda, arnold_vop.hda
+│       ├── soho/                               # Arnold ROP / SOHO 整合（必要）
+│       ├── toolbar/                            # Houdini 工具列
 │       └── scripts/
 │           ├── bin/                            # kick.exe, maketx.exe, ai.dll
 │           └── python/                         # htoa 模組與 arnold.py
 │
 └── platform-linux/
     └── houdini-20.5.278/                       # Linux + H20.5.278 巢狀子目錄
+        ├── config/
         ├── dso/                                # htoa.so
         ├── otls/
+        ├── soho/
+        ├── toolbar/
         └── scripts/
             ├── bin/                            # kick, maketx, libai.so
             └── python/
 ```
+
+> [!IMPORTANT]
+> **Payload 必須保留完整官方 release root**
+>
+> 上圖只列出主要目錄，不是可挑選複製的白名單。應使用 HtoA 安裝器的「僅解壓」結果作為各 variant 的完整根目錄，保留該 release 的所有原始子目錄與檔案。Autodesk 特別指出 `soho/` 必須位於 Houdini factory SOHO 路徑之前；缺少它可能使 Arnold ROP 與輸出流程不完整。`HOUDINI_PATH.prepend("{root}")` 會讓 Houdini 從完整 root 推導 `dso`、`otls`、`scripts`、`soho`、`toolbar` 與 `config` 等對應搜尋路徑。
 
 ---
 
@@ -74,7 +85,7 @@ def commands():
     # 1. 核心注入：將當前 Variant 的根目錄置頂於 HOUDINI_PATH
     # 註：官方標準安裝通常產生一個 JSON 檔案至 Houdini packages 目錄；
     # 在 Rez 架構中，將 {root} 加入 HOUDINI_PATH 為業界常見的動態等價替代方案，
-    # Houdini 啟動時會自動遍歷 {root} 底下的 dso, otls, scripts 等標準子資料夾。
+    # Houdini 啟動時會從完整 release root 推導 dso、otls、scripts、soho、toolbar、config 等搜尋路徑。
     env.HOUDINI_PATH.prepend("{root}")
 
     # 2. 注入 Arnold Core 獨立執行檔 (kick, maketx) 與動態庫搜尋路徑

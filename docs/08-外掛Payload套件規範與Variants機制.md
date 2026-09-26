@@ -55,20 +55,28 @@ X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3
 │
 ├── platform-windows/                           # 第 1 層：作業系統
 │   └── houdini-20.5.278/                       # 第 2 層：宿主軟體 Build
+│       ├── config/                             # UI、Icon 與外掛設定
 │       ├── dso/                                # htoa.dll
 │       ├── otls/                               # Arnold 專屬 HDA 數位資產
+│       ├── soho/                               # Arnold ROP / SOHO 整合（必要）
+│       ├── toolbar/                            # Houdini 工具列
 │       └── scripts/
 │           ├── bin/ (kick.exe, maketx.exe, ai.dll)
 │           └── python/
 │
 └── platform-linux/
     └── houdini-20.5.278/                       # 需存放對齊農場 ABI 之 build（以 hou.applicationPlatformInfo() 實查為準）
+        ├── config/
         ├── dso/                                # htoa.so
         ├── otls/
+        ├── soho/
+        ├── toolbar/
         └── scripts/
             ├── bin/ (kick, maketx, libai.so)
             └── python/
 ```
+
+以上只標出主要目錄。部署時必須以官方安裝器的「僅解壓」結果作為完整 Payload 根目錄，保留該 release 原有的所有檔案與子目錄，不可只挑選圖中列出的資料夾。尤其 `soho/` 是 Arnold ROP 正確覆寫 Houdini factory SOHO 路徑的必要內容。
 
 > [!NOTE]
 > **Variant 實體 Build 放置與 ABI 驗證規範**
