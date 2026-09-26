@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 760" width="100%" height="100%">
+  <defs>
+    <!-- 箭頭定義 -->
+    <marker id="arrow-cyan" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 Z" fill="#38bdf8" />
+    </marker>
+    <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 Z" fill="#c084fc" />
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 Z" fill="#34d399" />
+    </marker>
+    <marker id="arrow-amber" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 Z" fill="#fbbf24" />
+    </marker>
+
+    <!-- 漸層效果 -->
+    <linearGradient id="bg-card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e2433" />
+      <stop offset="100%" stop-color="#151922" />
+    </linearGradient>
+    <linearGradient id="sub-card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#283044" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#1c2230" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    .title { font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft JhengHei', sans-serif; font-weight: 700; font-size: 18px; fill: #f8fafc; }
+    .subtitle { font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft JhengHei', sans-serif; font-size: 12px; fill: #94a3b8; }
+    .card-title { font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft JhengHei', sans-serif; font-weight: 700; font-size: 14px; }
+    .badge-text { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; font-weight: 600; }
+    .label { font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft JhengHei', sans-serif; font-size: 12px; fill: #cbd5e1; }
+    .code-text { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; fill: #e2e8f0; }
+    .comment-text { font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft JhengHei', sans-serif; font-size: 11px; fill: #94a3b8; }
+    .arrow-label { font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft JhengHei', sans-serif; font-size: 11px; font-weight: 500; fill: #94a3b8; }
+  </style>
+
+  <!-- 整體外框背景 -->
+  <rect x="2" y="2" width="756" height="756" rx="16" fill="#0f172a" stroke="#334155" stroke-width="1.5" />
+
+  <!-- 頂部標題列 -->
+  <text x="30" y="36" class="title">Rez 工作室拓撲與資料流架構圖</text>
+  <text x="30" y="56" class="subtitle">Windows 工作站 + Win/Linux 農場 + DCC Wrapper + Payload (HtoA, Maya-USD) + Memcached</text>
+
+  <!-- ==================== 1. MEMCACHED 伺服器 ==================== -->
+  <g transform="translate(230, 80)">
+    <rect width="300" height="66" rx="10" fill="url(#bg-card)" stroke="#38bdf8" stroke-width="1.5" />
+    <circle cx="24" cy="33" r="10" fill="#0369a1" />
+    <circle cx="24" cy="33" r="4" fill="#38bdf8" />
+    <text x="44" y="28" class="card-title" fill="#38bdf8">Memcached 解析快取伺服器</text>
+    <text x="44" y="48" class="code-text">192.168.0.221:11211</text>
+  </g>
+
+  <!-- 連線 1: Memcached <--> NAS -->
+  <path d="M 380 146 L 380 184" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrow-cyan)" />
+  <rect x="275" y="153" width="210" height="20" rx="4" fill="#0f172a" stroke="#1e293b" />
+  <text x="380" y="167" text-anchor="middle" class="arrow-label">resolve_caching &amp; 定義快取</text>
+
+  <!-- ==================== 2. 中央共享儲存 (NAS) ==================== -->
+  <g transform="translate(30, 190)">
+    <!-- NAS 外框 -->
+    <rect width="700" height="155" rx="12" fill="url(#bg-card)" stroke="#a855f7" stroke-width="1.5" />
+    <rect x="16" y="14" width="8" height="16" rx="2" fill="#c084fc" />
+    <text x="32" y="27" class="card-title" fill="#e9d5ff">中央網路共享儲存 (NAS) — 全員唯讀掛載</text>
+    <rect x="360" y="13" width="324" height="22" rx="4" fill="#1e1b4b" stroke="#6b21a8" />
+    <text x="370" y="28" class="code-text" fill="#c084fc">Win: X:\rez-system  |  Linux: /mnt/x/rez-system</text>
+
+    <!-- NAS 內部子卡片 1: Config -->
+    <g transform="translate(16, 45)">
+      <rect width="324" height="94" rx="8" fill="url(#sub-card)" stroke="#475569" stroke-width="1" />
+      <text x="14" y="24" class="code-text" fill="#f8fafc">📁 config/rezconfig.py</text>
+      <text x="14" y="44" class="comment-text">• packages_path &amp; release_packages_path</text>
+      <text x="14" y="62" class="comment-text">• memcached_uri (192.168.0.221:11211)</text>
+      <text x="14" y="80" class="comment-text">• resolve_caching &amp; cache_packages_path</text>
+    </g>
+
+    <!-- NAS 內部子卡片 2: Packages -->
+    <g transform="translate(360, 45)">
+      <rect width="324" height="94" rx="8" fill="url(#sub-card)" stroke="#475569" stroke-width="1" />
+      <text x="14" y="24" class="code-text" fill="#f8fafc">📦 packages/ (正式發布庫)</text>
+      <text x="14" y="44" class="comment-text">• Wrapper: houdini, maya, nuke</text>
+      <text x="14" y="62" class="comment-text">• Payload: htoa, maya_usd (cachable)</text>
+      <text x="14" y="80" class="comment-text">• 標準巢狀目錄: platform-win/h20.5.278</text>
+    </g>
+  </g>
+
+  <!-- 連線 2: NAS -> 工作站 -->
+  <path d="M 200 345 L 200 380" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" />
+  <rect x="135" y="352" width="130" height="20" rx="4" fill="#0f172a" stroke="#1e293b" />
+  <text x="200" y="366" text-anchor="middle" class="arrow-label">唯讀掛載 (X: 磁碟)</text>
+
+  <!-- 連線 3: NAS -> 農場 -->
+  <path d="M 560 345 L 560 380" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" />
+  <rect x="495" y="352" width="130" height="20" rx="4" fill="#0f172a" stroke="#1e293b" />
+  <text x="560" y="366" text-anchor="middle" class="arrow-label">唯讀掛載 (/mnt/x 或 X:)</text>
+
+  <!-- ==================== 3. 左下：WINDOWS 藝術家工作站 ==================== -->
+  <g transform="translate(30, 390)">
+    <rect width="335" height="340" rx="12" fill="url(#bg-card)" stroke="#10b981" stroke-width="1.5" />
+    <rect x="14" y="14" width="8" height="16" rx="2" fill="#34d399" />
+    <text x="28" y="27" class="card-title" fill="#a7f3d0">Windows 藝術家工作站</text>
+    
+    <rect x="14" y="42" width="307" height="24" rx="4" fill="#064e3b" stroke="#059669" />
+    <text x="22" y="58" class="badge-text" fill="#6ee7b7">%USERPROFILE%\rez-client</text>
+
+    <!-- 區塊 1: 情境 A -->
+    <g transform="translate(14, 76)">
+      <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
+      <text x="10" y="20" class="card-title" font-size="12" fill="#38bdf8">【情境 A】venv/ (Rez 執行核心)</text>
+      <text x="10" y="38" class="comment-text">提供 rez-env, rez-build, rez-context 指令</text>
+      <text x="10" y="50" class="comment-text">PATH 優先加入 Scripts/ 目錄</text>
+    </g>
+
+    <!-- 區塊 2: 情境 B -->
+    <g transform="translate(14, 140)">
+      <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
+      <text x="10" y="20" class="card-title" font-size="12" fill="#fbbf24">【情境 B】packages/ (本地測試庫)</text>
+      <text x="10" y="38" class="comment-text">TD 本機安全除錯專區 (覆寫中央同版本)</text>
+      <text x="10" y="50" class="comment-text">一般美術維持為空，不污染全域環境</text>
+    </g>
+
+    <!-- 區塊 3: 預設 DCC -->
+    <g transform="translate(14, 204)">
+      <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
+      <text x="10" y="20" class="card-title" font-size="12" fill="#f8fafc">本機 DCC 預設安裝路徑</text>
+      <text x="10" y="38" class="code-text" font-size="10">C:\Program Files\Side Effects Software\...</text>
+      <text x="10" y="50" class="code-text" font-size="10">C:\Program Files\Autodesk\Maya... / Nuke...</text>
+    </g>
+
+    <!-- 工作流描述 -->
+    <g transform="translate(14, 268)">
+      <rect width="307" height="58" rx="6" fill="#1e293b" />
+      <text x="10" y="20" class="label" font-weight="600" fill="#34d399">💡 工作站流程：</text>
+      <text x="10" y="36" class="comment-text">雙擊桌面 Launcher ➔ 觸發 rez-env 啟動軟體</text>
+      <text x="10" y="50" class="comment-text">送算圖時輸出 package 請求與時間戳鎖定</text>
+    </g>
+  </g>
+
+  <!-- ==================== 4. 右下：算圖農場 (RENDER FARM) ==================== -->
+  <g transform="translate(395, 390)">
+    <rect width="335" height="340" rx="12" fill="url(#bg-card)" stroke="#f59e0b" stroke-width="1.5" />
+    <rect x="14" y="14" width="8" height="16" rx="2" fill="#fbbf24" />
+    <text x="28" y="27" class="card-title" fill="#fde68a">Windows / Linux 算圖農場</text>
+
+    <rect x="14" y="42" width="307" height="24" rx="4" fill="#78350f" stroke="#d97706" />
+    <text x="22" y="58" class="badge-text" fill="#fcd34d">Win: C:\rez-client  |  Linux: /opt/rez-client</text>
+
+    <!-- 區塊 1: 情境 A -->
+    <g transform="translate(14, 76)">
+      <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
+      <text x="10" y="20" class="card-title" font-size="12" fill="#38bdf8">【情境 A】本機 Rez 核心</text>
+      <text x="10" y="38" class="comment-text">設 REZ_DISABLE_HOME_CONFIG=1</text>
+      <text x="10" y="50" class="comment-text">呼叫時加 --no-local 隔離個人套件庫</text>
+    </g>
+
+    <!-- 區塊 2: 本機快取 -->
+    <g transform="translate(14, 140)">
+      <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
+      <text x="10" y="20" class="card-title" font-size="12" fill="#f43f5e">【高速快取】Local Package Cache</text>
+      <text x="10" y="38" class="code-text" font-size="10">Win: C:\rez-cache  |  Linux: /var/cache/rez</text>
+      <text x="10" y="50" class="comment-text">快取 cachable 套件，減輕 NAS 並發讀取</text>
+    </g>
+
+    <!-- 區塊 3: 預設 DCC -->
+    <g transform="translate(14, 204)">
+      <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
+      <text x="10" y="20" class="card-title" font-size="12" fill="#f8fafc">節點 DCC 預設安裝路徑</text>
+      <text x="10" y="38" class="code-text" font-size="10">Linux: /opt/hfs..., /usr/autodesk/..., /usr/local/...</text>
+      <text x="10" y="50" class="code-text" font-size="10">Windows: C:\Program Files\...</text>
+    </g>
+
+    <!-- 工作流描述 -->
+    <g transform="translate(14, 268)">
+      <rect width="307" height="58" rx="6" fill="#1e293b" />
+      <text x="10" y="20" class="label" font-weight="600" fill="#fbbf24">⚡ 農場執行流程：</text>
+      <text x="10" y="36" class="code-text" font-size="10">rez-env -i target_job.rxt -- &lt;render_cmd&gt;</text>
+      <text x="10" y="50" class="comment-text">載入平台專屬 Context，秒級重現環境</text>
+    </g>
+  </g>
+
+  <!-- 連線 4: 工作站 -> 農場 (派送請求與時間戳) -->
+  <path d="M 365 670 L 390 670" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrow-green)" />
+</svg>
