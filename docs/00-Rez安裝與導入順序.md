@@ -8,17 +8,21 @@
 
 * **來源**：官方 [`AcademySoftwareFoundation/rez`](https://github.com/AcademySoftwareFoundation/rez)，鎖定 tag **`3.4.0`**（支援 Python 3.8 至 3.13）。
 * **不建議 fork**：工作室的客製化需求都能透過中央 `rezconfig.py` 與 package 定義解決，不需要修改 Rez 原始碼。只有在必須修補 Rez 本身、且上游尚未合併時才 fork，並以獨立 tag（例如 `3.4.0-studio.1`）區分。
-* **離線安裝包**：將官方 source archive 下載一份放到中央 NAS，部署腳本會優先讀取 NAS，農場節點不需要連上 GitHub：
+* **離線安裝包**：將官方 Release 附帶的固定 Asset 下載一份放到中央 NAS，部署腳本會優先讀取 NAS，農場節點不需要連上 GitHub：
   ```text
-  來源：https://github.com/AcademySoftwareFoundation/rez/archive/refs/tags/3.4.0.zip
+  來源：https://github.com/AcademySoftwareFoundation/rez/releases/download/3.4.0/3.4.0.zip
   放置：X:/rez-system/installers/rez-3.4.0.zip（Linux：/mnt/x/rez-system/installers/rez-3.4.0.zip）
   ```
-* **鎖定安裝包雜湊**：放上 NAS 後，計算該檔案的 SHA-256，填入 02 的 `setup_client.ps1`（`$rezArchiveSha256`）與本篇第四節的 `setup_rez_linux.sh`（`REZ_ARCHIVE_SHA256`）。兩支腳本都會在解壓前驗證，不符即中止；未填入雜湊時也會直接中止。
+* **鎖定安裝包雜湊（永久穩定性保證）**：
+  GitHub 自動產生的 tag source archive（`archive/refs/tags/...`）可能因後端壓縮演算法更新而改變檔案雜湊（見 [GitHub archive 穩定性說明](https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives)）。
+  因此本架構採用官方 Release 正式附帶的靜態 Asset（`releases/download/3.4.0/3.4.0.zip`），該檔案為不可變靜態檔案且帶有 Sigstore 數位簽名，其 SHA-256 雜湊已正式公布於 [GitHub Release API](https://api.github.com/repos/AcademySoftwareFoundation/rez/releases/tags/3.4.0)：
+  - **官方公布 SHA-256**：`898fbd182825009d5b293bac870d5ef507c97b14daccaa960c9b1328e069dd2e`
+  兩支部署腳本皆已內建此固定雜湊，在解壓前進行嚴格比對。放上 NAS 後亦可執行指令核對：
   ```bash
   sha256sum /mnt/x/rez-system/installers/rez-3.4.0.zip                              # Linux
   Get-FileHash -Algorithm SHA256 X:\rez-system\installers\rez-3.4.0.zip           # Windows PowerShell
   ```
-  雜湊應寫在受版本控管的腳本內，不要與 zip 一起放在 NAS 上，否則檔案被替換時雜湊也可能一併被替換。GitHub 自動產生的 archive 並不保證每次下載的位元組都相同，因此以第一次放上 NAS 的那份為準；之後若改從 GitHub 下載而雜湊不符，腳本會中止，屬預期行為。
+  雜湊應寫在受版本控管的腳本內，不要與 zip 一起放在 NAS 上，否則檔案被替換時雜湊也可能一併被替換。
 * **升級流程**：新版本先在 TD 機台安裝驗證，再同時更新部署腳本中的版本常數、安裝包雜湊與 NAS 上的安裝包。
 
 ---
@@ -73,8 +77,8 @@ Windows 工作站與 Windows 農場節點請使用 [02](02-客戶端與算圖農
 set -euo pipefail
 
 REZ_VERSION="3.4.0"
-# 官方 rez-3.4.0.zip 的 SHA-256（取得方式見本篇第一節）
-REZ_ARCHIVE_SHA256="${REZ_ARCHIVE_SHA256:-45316d8f2362977d859b14f15225304b5b0a4781bd271884e8056e5c5d52748f}"
+# 官方 Release Asset 3.4.0.zip 的 SHA-256（取得方式見本篇第一節）
+REZ_ARCHIVE_SHA256="${REZ_ARCHIVE_SHA256:-898fbd182825009d5b293bac870d5ef507c97b14daccaa960c9b1328e069dd2e}"
 REZ_ROOT="${REZ_ROOT:-/mnt/x/rez-system}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/rez-client/venv}"
 PYTHON="${PYTHON:-python3}"
@@ -95,8 +99,8 @@ nas_archive="$REZ_ROOT/installers/rez-$REZ_VERSION.zip"
 if [[ -f "$nas_archive" ]]; then
     cp "$nas_archive" "$archive"
 else
-    echo ">>> NAS 找不到 $nas_archive，改從 GitHub 下載" >&2
-    curl -fsSL -o "$archive" "https://github.com/AcademySoftwareFoundation/rez/archive/refs/tags/$REZ_VERSION.zip"
+    echo ">>> NAS 找不到 $nas_archive，改從 GitHub 下載官方 Release Asset" >&2
+    curl -fsSL -o "$archive" "https://github.com/AcademySoftwareFoundation/rez/releases/download/$REZ_VERSION/$REZ_VERSION.zip"
 fi
 
 # 解壓前驗證安裝包雜湊，避免 NAS 檔案損壞或被替換
