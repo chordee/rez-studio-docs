@@ -149,7 +149,8 @@ def commands():
 
 ```powershell
 # 建立測試腳本
-Set-Content -Path "$env:TEMP\test_nuke.py" -Value "import nuke; print('Nuke 核心載入成功！版本:', nuke.NUKE_VERSION_STRING)"
+# PowerShell 5.1 的 Set-Content 預設以系統 ANSI code page 寫檔（繁中為 cp950），Python 3 讀取原始碼時會 SyntaxError，因此明確指定 UTF-8
+Set-Content -Path "$env:TEMP\test_nuke.py" -Encoding UTF8 -Value "import nuke; print('Nuke 核心載入成功！版本:', nuke.NUKE_VERSION_STRING)"
 
 # 透過 rez-env 呼叫 Nuke Terminal 模式執行 (使用 nuke.cmd shim)
 rez-env nuke-15.1.1 -- nuke -t "$env:TEMP\test_nuke.py"

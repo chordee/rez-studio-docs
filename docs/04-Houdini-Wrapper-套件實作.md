@@ -83,10 +83,10 @@ def commands():
     # 注意：HOUDINI_PACKAGE_DIR 只是追加目錄，Houdini 預設依然會掃描 $HOUDINI_USER_PREF_DIR/packages。
     # 透過父環境的 STUDIO_FARM_NODE 變數識別農場節點（defined() 可正確讀取父環境）：
     # - 美術工作站：維持預設家目錄（保留使用者個人的 Desktop、Shelf、Hotkey 等偏好設定）
-    # - 算圖農場：導向獨立受控暫存目錄，徹底切斷本機 ~/houdiniX.X/packages 被 & 帶入農場的風險
+    # - 算圖農場：導向部署時建立、僅 Worker 可寫入的目錄（見 02 第二節），避免本機 ~/houdiniX.X/packages 被帶入農場
     if defined("STUDIO_FARM_NODE"):
-        prefs_root = "/var/tmp/houdini_prefs" if system.platform == "linux" else "C:/temp/houdini_prefs"
-        env.HOUDINI_USER_PREF_DIR = f"{prefs_root}/__HVER__"
+        prefs_root = "/var/cache/farm-prefs" if system.platform == "linux" else "C:/farm-prefs"
+        env.HOUDINI_USER_PREF_DIR = f"{prefs_root}/houdini/__HVER__"
 ```
 
 ---
@@ -102,7 +102,10 @@ def commands():
    若無條件覆寫 `HOUDINI_USER_PREF_DIR`，會導致美術工作站每次啟動都被導向空目錄而遺失個人工具架與熱鍵，且在 Windows 上會造成多使用者共用同一暫存目錄。
    因此透過 `if defined("STUDIO_FARM_NODE"):` 進行條件式隔離（`defined()` 可正確讀取父環境變數）：
    - **工作站（美術）**：維持預設路徑，確保個人操作習慣與設定不被破壞。
-   - **算圖農場（Worker）**：由農場環境變數宣告 `STUDIO_FARM_NODE=1`，將偏好目錄重定向至受控的乾淨暫存區（`/var/tmp/houdini_prefs/__HVER__` 或 `C:/temp/houdini_prefs/__HVER__`），確保農場上的 `&` 絕不包含本機測試外掛。
+   - **算圖農場（Worker）**：由農場環境變數宣告 `STUDIO_FARM_NODE=1`，將偏好目錄重定向至 `/var/cache/farm-prefs/houdini/__HVER__` 或 `C:/farm-prefs/houdini/__HVER__`，讓農場上的 `&` 不會帶入使用者家目錄中的本機測試外掛。
+     - **根目錄由部署建立並收緊權限**：Windows 由 `setup_client.ps1 -FarmNode` 建立 `C:\farm-prefs`，Linux 由 systemd `CacheDirectory=` 建立 `/var/cache/farm-prefs`；只有 SYSTEM／root、系統管理員與 Worker 執行身分可寫入（見 [02 第二節](02-客戶端與算圖農場部署.md)）。不要改用 `C:\temp` 或 `/var/tmp` 這類任何帳號都能預先建立內容的位置。
+     - **版本子目錄**：`houdini/__HVER__` 是否由 Houdini 首次啟動時自動建立，尚待農場實機確認；若未自動建立，部署時請預先建立對應版本的子目錄（例如 `houdini/20.5`）。
+     - **限制**：同一節點上同版本的任務會共用這個目錄；需要逐任務隔離時，由派送端另行處理。
 4. **移除無效的 `dsolib` 與 `LD_LIBRARY_PATH`**：
    - Windows 的 `custom/houdini/dsolib` 放的是 HDK 編譯專用的 `.lib` 靜態連結檔，非執行期 DLL。
    - Linux 版 Houdini 主程式自帶 ELF `RPATH`，無需手動 prepend `LD_LIBRARY_PATH`。
