@@ -92,10 +92,14 @@ def commands():
     # 官方 installer 產生的 htoa.json 將 PATH 指向 scripts/bin；實際內容以安裝包解壓結果為準
     env.PATH.prepend("{root}/scripts/bin")
 
-    # 3. Python API 與輔助模組
-    env.PYTHONPATH.prepend("{root}/scripts/python")
+    # 註：不設定 PYTHONPATH。
+    # Houdini 載入 hou 時會把每個 $HOUDINI_PATH 項目的 scripts/python 加入 sys.path，
+    # 因此 HtoA 的 Python 模組已可在 Houdini／hython 內 import。
+    # 已核對的 htoa.json（HtoA 6.3.6.0／H20.5.445 範例與 6.5.1.0／H21.0.631）都沒有設定 PYTHONPATH，
+    # 只以 HOUDINI_PATH 與 PATH 注入路徑；其他版本與平台以對應官方安裝包產生的 htoa.json 為準。
+    # 額外加入 PYTHONPATH 會把 HtoA 模組暴露給整個 Rez 環境與所有子行程（包含非 Houdini 的 Python）。
 
-    # 4. 注意：切勿將 {root}/dso 加入 ARNOLD_PLUGIN_PATH！
+    # 3. 注意：切勿將 {root}/dso 加入 ARNOLD_PLUGIN_PATH！
     # dso/ 內存放的是 Houdini 的 DSO 二進位檔（htoa.dll / htoa.so），已由 HOUDINI_PATH 自動載入。
     # 若加入 ARNOLD_PLUGIN_PATH，Arnold 會嘗試將其當成 Arnold 外掛載入而引發 Warning 或 Crash。
     # HtoA 自身會處理內建外掛路徑，ARNOLD_PLUGIN_PATH 應保留給工作室自製著色器套件。
@@ -129,6 +133,8 @@ def commands():
 ```bash
 rez-env houdini-20.5.278 htoa-6.3.3.0 -- hython -c "import htoa; print('HtoA 載入成功，路徑:', htoa.__file__)"
 ```
+
+由於 `package.py` 未設定 `PYTHONPATH`，此測試同時驗證 Houdini 能經由 `HOUDINI_PATH` 推導出的 `{root}/scripts/python` 找到 HtoA 模組；印出的路徑應位於該 HtoA variant 目錄內。
 
 ### 2. 驗證 Arnold 獨立渲染引擎版本
 ```bash

@@ -13,7 +13,13 @@
   來源：https://github.com/AcademySoftwareFoundation/rez/archive/refs/tags/3.4.0.zip
   放置：X:/rez-system/installers/rez-3.4.0.zip（Linux：/mnt/x/rez-system/installers/rez-3.4.0.zip）
   ```
-* **升級流程**：新版本先在 TD 機台安裝驗證，再同時更新部署腳本中的版本常數與 NAS 上的安裝包。
+* **鎖定安裝包雜湊**：放上 NAS 後，計算該檔案的 SHA-256，填入 02 的 `setup_client.ps1`（`$rezArchiveSha256`）與本篇第四節的 `setup_rez_linux.sh`（`REZ_ARCHIVE_SHA256`）。兩支腳本都會在解壓前驗證，不符即中止；未填入雜湊時也會直接中止。
+  ```bash
+  sha256sum /mnt/x/rez-system/installers/rez-3.4.0.zip                              # Linux
+  Get-FileHash -Algorithm SHA256 X:\rez-system\installers\rez-3.4.0.zip           # Windows PowerShell
+  ```
+  雜湊應寫在受版本控管的腳本內，不要與 zip 一起放在 NAS 上，否則檔案被替換時雜湊也可能一併被替換。GitHub 自動產生的 archive 並不保證每次下載的位元組都相同，因此以第一次放上 NAS 的那份為準；之後若改從 GitHub 下載而雜湊不符，腳本會中止，屬預期行為。
+* **升級流程**：新版本先在 TD 機台安裝驗證，再同時更新部署腳本中的版本常數、安裝包雜湊與 NAS 上的安裝包。
 
 ---
 
@@ -43,7 +49,7 @@
 | :--- | :--- | :--- | :--- |
 | 1 | 建立 NAS 的 `config/`、`packages/`、`installers/` 目錄並設定 ACL | IT | [01 第二節](01-中央伺服器與全域配置.md) |
 | 2 | 放置中央 `rezconfig.py` | Pipeline TD | [01 第五節](01-中央伺服器與全域配置.md) |
-| 3 | 將 `rez-3.4.0.zip` 放入 `installers/` | Pipeline TD | 本篇第一節 |
+| 3 | 將 `rez-3.4.0.zip` 放入 `installers/`，並把 SHA-256 填入兩支部署腳本 | Pipeline TD | 本篇第一節 |
 | 4 | 在 TD 管理機安裝 Rez | Pipeline TD | Windows：[02 第一節](02-客戶端與算圖農場部署.md)；Linux：本篇第四節 |
 | 5 | 驗證 Rez 與設定檔載入 | Pipeline TD | 本篇第五節 |
 | 6 | 在 Windows 與 Linux 機台各執行一次 `rez-bind platform`、`arch`、`os` | Pipeline TD | [01 第一節](01-中央伺服器與全域配置.md) |
@@ -67,9 +73,16 @@ Windows 工作站與 Windows 農場節點請使用 [02](02-客戶端與算圖農
 set -euo pipefail
 
 REZ_VERSION="3.4.0"
+# NAS 上 rez-3.4.0.zip 的 SHA-256（取得方式見本篇第一節）
+REZ_ARCHIVE_SHA256="${REZ_ARCHIVE_SHA256:-<填入 rez-3.4.0.zip 的 SHA-256>}"  # ← EDIT THIS
 REZ_ROOT="${REZ_ROOT:-/mnt/x/rez-system}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/rez-client/venv}"
 PYTHON="${PYTHON:-python3}"
+
+if [[ ! "$REZ_ARCHIVE_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
+    echo "錯誤：尚未設定 REZ_ARCHIVE_SHA256，請先填入 rez-$REZ_VERSION.zip 的 SHA-256" >&2
+    exit 1
+fi
 
 # 1. 檢查 Python 版本（Rez 3.4.0 支援 3.8-3.13）與 venv 模組
 "$PYTHON" -c 'import sys, venv, ensurepip; v = sys.version_info[:2]; sys.exit(0 if (3, 8) <= v < (3, 14) else f"Python {v[0]}.{v[1]} 不在 Rez 3.4.0 支援範圍 3.8-3.13")'
@@ -86,12 +99,23 @@ else
     curl -fsSL -o "$archive" "https://github.com/AcademySoftwareFoundation/rez/archive/refs/tags/$REZ_VERSION.zip"
 fi
 
+# 解壓前驗證安裝包雜湊，避免 NAS 檔案損壞或被替換
+echo "${REZ_ARCHIVE_SHA256,,}  $archive" | sha256sum -c --quiet - || {
+    echo "錯誤：安裝包 SHA-256 不符，已中止安裝" >&2
+    exit 1
+}
+
 # 3. 解壓並以官方 install.py 建立 production install（重複執行會覆蓋更新）
 "$PYTHON" -m zipfile -e "$archive" "$tmp_dir"
 "$PYTHON" "$tmp_dir/rez-$REZ_VERSION/install.py" -v "$INSTALL_DIR"
 
-# 4. Smoke Test
-"$INSTALL_DIR/bin/rez/rez" --version
+# 4. Smoke Test：比對安裝後的版本與鎖定版本
+installed_ver="$("$INSTALL_DIR/bin/rez/rez" --version | grep -oE 'Rez [0-9]+\.[0-9]+\.[0-9]+' | cut -d' ' -f2 || true)"
+if [[ "$installed_ver" != "$REZ_VERSION" ]]; then
+    echo "錯誤：安裝後的 Rez 版本為 ${installed_ver:-未知}，與鎖定版本 $REZ_VERSION 不符" >&2
+    exit 1
+fi
+echo ">>> 驗證成功！目前 Rez 版本: $installed_ver"
 ```
 
 執行方式：
@@ -100,6 +124,8 @@ fi
 sudo ./setup_rez_linux.sh
 # 自訂 NAS 根目錄、安裝位置或 Python：
 sudo REZ_ROOT=/mnt/x/rez-system INSTALL_DIR=/opt/rez-client/venv PYTHON=/usr/bin/python3.11 ./setup_rez_linux.sh
+# 也可以用環境變數傳入雜湊，不修改腳本（貼上第一節記錄的值，務必保留引號）：
+sudo env REZ_ARCHIVE_SHA256='<貼上已記錄的 SHA-256>' ./setup_rez_linux.sh
 ```
 
 > [!NOTE]
