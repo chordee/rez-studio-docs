@@ -62,7 +62,7 @@
     <!-- NAS 外框 -->
     <rect width="700" height="155" rx="12" fill="url(#bg-card)" stroke="#a855f7" stroke-width="1.5" />
     <rect x="16" y="14" width="8" height="16" rx="2" fill="#c084fc" />
-    <text x="32" y="27" class="card-title" fill="#e9d5ff">中央 NAS 儲存 — 全員唯讀</text>
+    <text x="32" y="27" class="card-title" fill="#e9d5ff">中央 NAS 儲存 — 工作站與農場唯讀</text>
     <rect x="310" y="13" width="374" height="22" rx="4" fill="#1e1b4b" stroke="#6b21a8" />
     <text x="320" y="28" class="code-text" fill="#c084fc">Win: \\nas\share\rez-system  |  Linux: /mnt/x/rez-system</text>
 
