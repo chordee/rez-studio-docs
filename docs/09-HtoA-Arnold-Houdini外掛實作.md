@@ -94,7 +94,9 @@ def commands():
 
     # 註：不設定 PYTHONPATH。
     # Houdini 載入 hou 時會把每個 $HOUDINI_PATH 項目的 scripts/python 加入 sys.path，
-    # 因此 HtoA 的 Python 模組已可在 Houdini／hython 內 import；官方 htoa.json 也只設定 HOUDINI_PATH 與 PATH。
+    # 因此 HtoA 的 Python 模組已可在 Houdini／hython 內 import。
+    # 已核對的 htoa.json（HtoA 6.3.6.0／H20.5.445 範例與 6.5.1.0／H21.0.631）都沒有設定 PYTHONPATH，
+    # 只以 HOUDINI_PATH 與 PATH 注入路徑；其他版本與平台以對應官方安裝包產生的 htoa.json 為準。
     # 額外加入 PYTHONPATH 會把 HtoA 模組暴露給整個 Rez 環境與所有子行程（包含非 Houdini 的 Python）。
 
     # 3. 注意：切勿將 {root}/dso 加入 ARNOLD_PLUGIN_PATH！

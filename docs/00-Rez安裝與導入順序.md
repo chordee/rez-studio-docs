@@ -124,8 +124,8 @@ echo ">>> 驗證成功！目前 Rez 版本: $installed_ver"
 sudo ./setup_rez_linux.sh
 # 自訂 NAS 根目錄、安裝位置或 Python：
 sudo REZ_ROOT=/mnt/x/rez-system INSTALL_DIR=/opt/rez-client/venv PYTHON=/usr/bin/python3.11 ./setup_rez_linux.sh
-# 也可以用環境變數傳入雜湊，不修改腳本：
-sudo REZ_ARCHIVE_SHA256=<SHA-256> ./setup_rez_linux.sh
+# 也可以用環境變數傳入雜湊，不修改腳本（貼上第一節記錄的值，務必保留引號）：
+sudo env REZ_ARCHIVE_SHA256='<貼上已記錄的 SHA-256>' ./setup_rez_linux.sh
 ```
 
 > [!NOTE]
