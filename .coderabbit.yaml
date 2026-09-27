@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: zh-TW
+
+reviews:
+  profile: chill
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "docs/**/*.md"
+      instructions: |
+        本 repo 為 Rez 套件管理與 DCC（Houdini、Maya、Nuke）部署規劃文件。
+        審閱重點：
+        - 指令、CLI 參數、環境變數與設定鍵名稱是否正確存在（Rez、PowerShell、systemd、DCC）。
+        - package.py 範例是否符合 Rez Rex API 行為（例如變數初次賦值覆寫父環境）。
+        - Windows 與 Linux 路徑、跨文件的版本號與套件名稱是否一致。
+        - 未經實機驗證的敘述是否被寫成定論。
+
+chat:
+  auto_reply: true

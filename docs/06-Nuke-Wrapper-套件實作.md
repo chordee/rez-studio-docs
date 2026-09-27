@@ -28,25 +28,25 @@ X:/rez-system/packages/nuke/ (Linux: /mnt/x/rez-system/packages/nuke/)
 
 ### 2. Shim 腳本內容範例
 
+Shim 不寫死執行檔名稱，改讀 `package.py` 匯出的 `NUKE_EXE`（例如 `Nuke15.1.exe`）。因此所有版本的 `bin/` 內容完全相同，新增版本時可直接複製整個 `bin/` 目錄。
+
 **`bin/nuke.cmd`**：
 ```cmd
 @echo off
-@"%NUKE_LOCATION%\Nuke15.1.exe" %*
+"%NUKE_LOCATION%\%NUKE_EXE%" %*
 ```
 
 **`bin/nukex.cmd`**：
 ```cmd
 @echo off
-@"%NUKE_LOCATION%\Nuke15.1.exe" --nukex %*
+"%NUKE_LOCATION%\%NUKE_EXE%" --nukex %*
 ```
 
 **`bin/nukestudio.cmd`**：
 ```cmd
 @echo off
-@"%NUKE_LOCATION%\Nuke15.1.exe" --studio %*
+"%NUKE_LOCATION%\%NUKE_EXE%" --studio %*
 ```
-
-17.1.1 目錄內的三個 Shim 結構相同，但執行檔名稱必須改為 `Nuke17.1.exe`；`nukex.cmd` 與 `nukestudio.cmd` 分別保留 `--nukex`、`--studio` 參數。
 
 ---
 
@@ -105,6 +105,8 @@ def commands():
 
     # 5. 指令封裝（解決 Windows 批次/農場呼叫問題）
     if system.platform == "windows":
+        # 匯出版本對應的執行檔名稱，供通用 Shim 讀取（15.1.1 -> Nuke15.1.exe）
+        env.NUKE_EXE = f"Nuke{v[0]}.{v[1]}.exe"
         # 在 Windows 上將套件內建的 bin/ 目錄置頂，
         # 提供實體 nuke.cmd / nukex.cmd，無論在 cmd、PowerShell 或非互動批次檔中皆能穩定執行
         env.PATH.prepend("{root}/bin")
@@ -116,7 +118,7 @@ def commands():
         alias("nukestudio", f'"{nuke_root}/{bin_base}" --studio')
 ```
 
-`17.1.1/package.py` 使用相同內容，只需將 `version` 改為 `"17.1.1"`。通用轉換邏輯會將 Rez 版本組成 Foundry 發行號 `17.1v1`；Windows Shim 則仍須使用該版本對應的 `Nuke17.1.exe`。
+`17.1.1/package.py` 使用相同內容，只需將 `version` 改為 `"17.1.1"`。通用轉換邏輯會將 Rez 版本組成 Foundry 發行號 `17.1v1`，並匯出 `NUKE_EXE=Nuke17.1.exe` 供 Shim 使用，`bin/` 內的 Shim 無須修改。
 
 ---
 

@@ -32,6 +32,12 @@
 | **Foundry Nuke** | 15.1.1 (對應 15.1v1) | `C:/Program Files/Nuke15.1v1` | `/usr/local/Nuke15.1v1` |
 | **Foundry Nuke** | 17.1.1 (對應 17.1v1) | `C:/Program Files/Nuke17.1v1` | `/usr/local/Nuke17.1v1` |
 
+> [!WARNING]
+> **多版本並存時，一律使用完整版本請求**
+>
+> 同一套件家族存在多個版本時，未指定版本的請求（例如 `rez-env houdini`）會解析到**最新版本**（目前為 `22.0.368`）。一旦有人發布更新的 Wrapper，所有未鎖定版本的 Launcher、Submitter 與腳本都會在無預警的情況下跟著升級。
+> 因此 Launcher 與 Submitter 必須使用完整版本請求（如 `houdini-20.5.278`），或由專案層級設定檔統一指定該專案使用的 DCC 版本。
+
 > [!IMPORTANT]
 > **Maya 本機安裝與隨附外掛部署規範（防範 Module 雙重衝突）**
 >
