@@ -26,8 +26,11 @@
 | 軟體名稱 | Rez 套件版本 | Windows 官方預設安裝路徑 | Linux 官方預設安裝路徑 |
 | :--- | :--- | :--- | :--- |
 | **SideFX Houdini** | 20.5.278 | `C:/Program Files/Side Effects Software/Houdini 20.5.278` | `/opt/hfs20.5.278` |
+| **SideFX Houdini** | 22.0.368 | `C:/Program Files/Side Effects Software/Houdini 22.0.368` | `/opt/hfs22.0.368` |
 | **Autodesk Maya** | 2024 | `C:/Program Files/Autodesk/Maya2024` | `/usr/autodesk/maya2024` |
+| **Autodesk Maya** | 2027 | `C:/Program Files/Autodesk/Maya2027` | `/usr/autodesk/maya2027` |
 | **Foundry Nuke** | 15.1.1 (對應 15.1v1) | `C:/Program Files/Nuke15.1v1` | `/usr/local/Nuke15.1v1` |
+| **Foundry Nuke** | 17.1.1 (對應 17.1v1) | `C:/Program Files/Nuke17.1v1` | `/usr/local/Nuke17.1v1` |
 
 > [!IMPORTANT]
 > **Maya 本機安裝與隨附外掛部署規範（防範 Module 雙重衝突）**
@@ -93,13 +96,23 @@ if not os.path.exists(dcc_root):
 ```text
 X:/rez-system/packages/ (Linux: /mnt/x/rez-system/packages/)
 ├── houdini/
-│   └── 20.5.278/
+│   ├── 20.5.278/
+│   │   └── package.py
+│   └── 22.0.368/
 │       └── package.py
 ├── maya/
-│   └── 2024/
+│   ├── 2024/
+│   │   └── package.py
+│   └── 2027/
 │       └── package.py
 └── nuke/
-    └── 15.1.1/
+    ├── 15.1.1/
+    │   ├── package.py
+    │   └── bin/
+    │       ├── nuke.cmd
+    │       ├── nukex.cmd
+    │       └── nukestudio.cmd
+    └── 17.1.1/
         ├── package.py
         └── bin/
             ├── nuke.cmd

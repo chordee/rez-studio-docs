@@ -11,12 +11,19 @@
 **最佳生產級解法是在 Wrapper 內建 `bin/*.cmd` 實體 Shim 腳本**：
 
 ```text
-X:/rez-system/packages/nuke/15.1.1/ (Linux: /mnt/x/rez-system/packages/nuke/15.1.1/)
-├── package.py
-└── bin/
-    ├── nuke.cmd                 # Windows 指令 Shim
-    ├── nukex.cmd
-    └── nukestudio.cmd
+X:/rez-system/packages/nuke/ (Linux: /mnt/x/rez-system/packages/nuke/)
+├── 15.1.1/
+│   ├── package.py
+│   └── bin/
+│       ├── nuke.cmd             # Windows 指令 Shim
+│       ├── nukex.cmd
+│       └── nukestudio.cmd
+└── 17.1.1/
+    ├── package.py
+    └── bin/
+        ├── nuke.cmd
+        ├── nukex.cmd
+        └── nukestudio.cmd
 ```
 
 ### 2. Shim 腳本內容範例
@@ -38,6 +45,8 @@ X:/rez-system/packages/nuke/15.1.1/ (Linux: /mnt/x/rez-system/packages/nuke/15.1
 @echo off
 @"%NUKE_LOCATION%\Nuke15.1.exe" --studio %*
 ```
+
+17.1.1 目錄內的三個 Shim 結構相同，但執行檔名稱必須改為 `Nuke17.1.exe`；`nukex.cmd` 與 `nukestudio.cmd` 分別保留 `--nukex`、`--studio` 參數。
 
 ---
 
@@ -107,6 +116,8 @@ def commands():
         alias("nukestudio", f'"{nuke_root}/{bin_base}" --studio')
 ```
 
+`17.1.1/package.py` 使用相同內容，只需將 `version` 改為 `"17.1.1"`。通用轉換邏輯會將 Rez 版本組成 Foundry 發行號 `17.1v1`；Windows Shim 則仍須使用該版本對應的 `Nuke17.1.exe`。
+
 ---
 
 ## 三、環境變數與農場算圖陷阱
@@ -139,6 +150,18 @@ rez-env nuke-15.1.1 -- nuke -t "$env:TEMP\test_nuke.py"
 預期輸出：
 ```text
 Nuke 核心載入成功！版本: 15.1v1
+```
+
+第二個版本使用相同測試腳本驗證：
+
+```powershell
+rez-env nuke-17.1.1 -- nuke -t "$env:TEMP\test_nuke.py"
+```
+
+預期輸出：
+
+```text
+Nuke 核心載入成功！版本: 17.1v1
 ```
 
 ### 2. 農場渲染命令驗證

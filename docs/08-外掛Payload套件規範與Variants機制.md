@@ -22,7 +22,7 @@
 1. 為 Houdini 20.5.278 編譯的 Arnold 外掛，**不能**載入到其他未相容的 Houdini build（可能觸發未定義符號錯誤或 Crash）。
 2. 在 Windows 上需要 `.dll`，在 Linux 上需要 `.so`。
 3. **跨平台 Python 與編譯器 ABI 維度**：
-   - 外掛不僅對齊 Houdini 主程式與 Build 版本，還需精確匹配 Python 版本。官方 `Arnold.json` 內的 `HTOA_PY_SUFFIX`（如 `.py310`、`.py311`）條件判斷**並未限定作業系統，Windows 與 Linux 均適用**。
+   - 外掛不僅對齊 Houdini 主程式與 Build 版本，還可能需要匹配 Python 與編譯器版本。installer 產生的 `htoa.json` 會依版本宣告不同的 suffix：社群可見的 HtoA 6.3.6.0／H20.5.445 範例含 `HTOA_PY_SUFFIX`（`.py310`）與 `HTOA_GCC_SUFFIX`；實查的官方 HtoA 6.5.1.0／H21.0.631 則只宣告 Linux `_gcc11`，沒有 Python suffix。**suffix 維度隨版本變動，不可視為通則。**
    - 編譯器後綴（`HTOA_GCC_SUFFIX`，如 `_gcc9`、`_gcc11`）則主要為 Linux GCC 工具鏈所需。
    - 放置於 variant 目錄的 payload 必須與機台實際安裝的 Houdini ABI 完全相符。**切勿主觀臆測特定版本（例如 H20.5）的預設編譯器或 Python 版本**，在部署前必須於目標節點執行 `hython -c "import hou; print(hou.applicationPlatformInfo())"` 實機查詢真實的 platform build 字串（Windows 輸出如 `windows-x86_64-cl19.xx`，Linux 輸出如 `linux-x86_64-gcc...`），並結合 Python 直譯器版本選取正確的 HtoA release。
 

@@ -7,7 +7,11 @@
 ## 一、檔案存放位置
 
 放置於中央網路儲存庫：
-`X:/rez-system/packages/maya/2024/package.py`（Linux: `/mnt/x/rez-system/packages/maya/2024/package.py`）
+
+- `X:/rez-system/packages/maya/2024/package.py`（Linux: `/mnt/x/rez-system/packages/maya/2024/package.py`）
+- `X:/rez-system/packages/maya/2027/package.py`（Linux: `/mnt/x/rez-system/packages/maya/2027/package.py`）
+
+以下以 2024 為完整範例；2027 使用相同內容，只需將 `version` 改為 `"2027"`。安裝路徑會由 `this.version` 動態組成。
 
 ---
 
@@ -90,6 +94,18 @@ rez-env maya-2024 -- mayapy -c "import maya.standalone; maya.standalone.initiali
 預期輸出：
 ```text
 Maya Version: 2024
+```
+
+第二個版本使用相同方式驗證：
+
+```bash
+rez-env maya-2027 -- mayapy -c "import maya.standalone; maya.standalone.initialize(); import maya.cmds as cmds; print('Maya Version:', cmds.about(v=True))"
+```
+
+預期輸出：
+
+```text
+Maya Version: 2027
 ```
 
 ### 2. 農場渲染指令測試

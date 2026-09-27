@@ -7,7 +7,11 @@
 ## 一、檔案存放位置
 
 放置於中央網路儲存庫：
-`X:/rez-system/packages/houdini/20.5.278/package.py`（Linux: `/mnt/x/rez-system/packages/houdini/20.5.278/package.py`）
+
+- `X:/rez-system/packages/houdini/20.5.278/package.py`（Linux: `/mnt/x/rez-system/packages/houdini/20.5.278/package.py`）
+- `X:/rez-system/packages/houdini/22.0.368/package.py`（Linux: `/mnt/x/rez-system/packages/houdini/22.0.368/package.py`）
+
+以下以 20.5.278 為完整範例；22.0.368 使用相同內容，只需將 `version` 改為 `"22.0.368"`。安裝路徑會由 `this.version` 動態組成。
 
 ---
 
@@ -117,6 +121,18 @@ rez-env houdini-20.5.278 -- hython -c "import hou; print('Houdini Version:', hou
 預期輸出：
 ```text
 Houdini Version: 20.5.278
+```
+
+第二個版本使用相同方式驗證：
+
+```bash
+rez-env houdini-22.0.368 -- hython -c "import hou; print('Houdini Version:', hou.applicationVersionString())"
+```
+
+預期輸出：
+
+```text
+Houdini Version: 22.0.368
 ```
 
 ### 2. 農場渲染命令驗證（Karma 渲染測試）
