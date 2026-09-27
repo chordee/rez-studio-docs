@@ -53,7 +53,7 @@
 | :--- | :--- | :--- | :--- |
 | 1 | 建立 NAS 的 `config/`、`packages/`、`installers/` 目錄並設定 ACL | IT | [01 第二節](01-中央伺服器與全域配置.md) |
 | 2 | 放置中央 `rezconfig.py` | Pipeline TD | [01 第五節](01-中央伺服器與全域配置.md) |
-| 3 | 將 `rez-3.4.0.zip` 放入 `installers/`，並把 SHA-256 填入兩支部署腳本 | Pipeline TD | 本篇第一節 |
+| 3 | 將 `rez-3.4.0.zip` 放入 `installers/`，並核對 SHA-256 與兩支部署腳本內建值一致 | Pipeline TD | 本篇第一節 |
 | 4 | 在 TD 管理機安裝 Rez（本機共用安裝，需系統管理員權限） | Pipeline TD | Windows：[02 第一節](02-客戶端與算圖農場部署.md)；Linux：本篇第四節 |
 | 5 | 驗證 Rez 與設定檔載入 | Pipeline TD | 本篇第五節 |
 | 6 | 在 Windows 與 Linux 機台各執行一次 `rez-bind platform`、`arch`、`os` | Pipeline TD | [01 第一節](01-中央伺服器與全域配置.md) |
