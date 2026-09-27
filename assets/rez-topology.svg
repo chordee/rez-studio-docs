@@ -92,8 +92,8 @@
 
   <!-- 連線 3: NAS -> 農場 -->
   <path d="M 560 345 L 560 380" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" />
-  <rect x="495" y="352" width="130" height="20" rx="4" fill="#0f172a" stroke="#1e293b" />
-  <text x="560" y="366" text-anchor="middle" class="arrow-label">唯讀掛載 (/mnt/x 或 X:)</text>
+  <rect x="480" y="352" width="160" height="20" rx="4" fill="#0f172a" stroke="#1e293b" />
+  <text x="560" y="366" text-anchor="middle" class="arrow-label">唯讀掛載 (/mnt/x 或 UNC)</text>
 
   <!-- ==================== 3. 左下：WINDOWS 藝術家工作站 ==================== -->
   <g transform="translate(30, 390)">
@@ -108,23 +108,23 @@
     <g transform="translate(14, 76)">
       <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
       <text x="10" y="20" class="card-title" font-size="12" fill="#38bdf8">【情境 A】venv/ (Rez 執行核心)</text>
-      <text x="10" y="38" class="comment-text">提供 rez-env, rez-build, rez-context 指令</text>
-      <text x="10" y="50" class="comment-text">PATH 優先加入 Scripts/ 目錄</text>
+      <text x="10" y="36" class="comment-text">install.py 隔離 CLI：rez-env、rez-build 等</text>
+      <text x="10" y="50" class="comment-text">PATH 加入 venv\Scripts\rez</text>
     </g>
 
     <!-- 區塊 2: 情境 B -->
     <g transform="translate(14, 140)">
       <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
       <text x="10" y="20" class="card-title" font-size="12" fill="#fbbf24">【情境 B】packages/ (本地測試庫)</text>
-      <text x="10" y="38" class="comment-text">TD 本機安全除錯專區 (覆寫中央同版本)</text>
-      <text x="10" y="50" class="comment-text">一般美術維持為空，不污染全域環境</text>
+      <text x="10" y="36" class="comment-text">僅 STUDIO_REZ_DEV=1 的 TD 帳號啟用</text>
+      <text x="10" y="50" class="comment-text">一般帳號不建立、不搜尋本機開發庫</text>
     </g>
 
     <!-- 區塊 3: 預設 DCC -->
     <g transform="translate(14, 204)">
       <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
       <text x="10" y="20" class="card-title" font-size="12" fill="#f8fafc">本機 DCC 預設安裝路徑</text>
-      <text x="10" y="38" class="code-text" font-size="10">C:\Program Files\Side Effects Software\...</text>
+      <text x="10" y="36" class="code-text" font-size="10">C:\Program Files\Side Effects Software\...</text>
       <text x="10" y="50" class="code-text" font-size="10">C:\Program Files\Autodesk\Maya... / Nuke...</text>
     </g>
 
@@ -132,7 +132,7 @@
     <g transform="translate(14, 268)">
       <rect width="307" height="58" rx="6" fill="#1e293b" />
       <text x="10" y="20" class="label" font-weight="600" fill="#34d399">💡 工作站流程：</text>
-      <text x="10" y="36" class="comment-text">雙擊桌面 Launcher ➔ 觸發 rez-env 啟動軟體</text>
+      <text x="10" y="36" class="comment-text">雙擊 Launcher ➔ 以完整版本請求觸發 rez-env</text>
       <text x="10" y="50" class="comment-text">送算圖時輸出 package 請求與時間戳鎖定</text>
     </g>
   </g>
@@ -150,15 +150,15 @@
     <g transform="translate(14, 76)">
       <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
       <text x="10" y="20" class="card-title" font-size="12" fill="#38bdf8">【情境 A】本機 Rez 核心</text>
-      <text x="10" y="38" class="comment-text">設 REZ_DISABLE_HOME_CONFIG=1</text>
-      <text x="10" y="50" class="comment-text">呼叫時加 --no-local 隔離個人套件庫</text>
+      <text x="10" y="36" class="comment-text">設 REZ_DISABLE_HOME_CONFIG=1</text>
+      <text x="10" y="50" class="comment-text">STUDIO_FARM_NODE=1 ＋ --no-local 隔離</text>
     </g>
 
     <!-- 區塊 2: 本機快取 -->
     <g transform="translate(14, 140)">
       <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
       <text x="10" y="20" class="card-title" font-size="12" fill="#f43f5e">【高速快取】Local Package Cache</text>
-      <text x="10" y="38" class="code-text" font-size="10">Win: C:\rez-cache  |  Linux: /var/cache/rez</text>
+      <text x="10" y="36" class="code-text" font-size="10">Win: C:\rez-cache  |  Linux: /var/cache/rez</text>
       <text x="10" y="50" class="comment-text">快取 cachable 套件，減輕 NAS 並發讀取</text>
     </g>
 
@@ -166,7 +166,7 @@
     <g transform="translate(14, 204)">
       <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
       <text x="10" y="20" class="card-title" font-size="12" fill="#f8fafc">節點 DCC 預設安裝路徑</text>
-      <text x="10" y="38" class="code-text" font-size="10">Linux: /opt/hfs..., /usr/autodesk/..., /usr/local/...</text>
+      <text x="10" y="36" class="code-text" font-size="10">Linux: /opt, /usr/autodesk, /usr/local</text>
       <text x="10" y="50" class="code-text" font-size="10">Windows: C:\Program Files\...</text>
     </g>
 
@@ -175,7 +175,7 @@
       <rect width="307" height="58" rx="6" fill="#1e293b" />
       <text x="10" y="20" class="label" font-weight="600" fill="#fbbf24">⚡ 農場執行流程：</text>
       <text x="10" y="36" class="code-text" font-size="10">rez-env -i target_job.rxt -- &lt;render_cmd&gt;</text>
-      <text x="10" y="50" class="comment-text">載入平台專屬 Context，秒級重現環境</text>
+      <text x="10" y="50" class="comment-text">載入目標平台解析的專屬 Context</text>
     </g>
   </g>
 
