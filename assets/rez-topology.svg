@@ -62,9 +62,9 @@
     <!-- NAS 外框 -->
     <rect width="700" height="155" rx="12" fill="url(#bg-card)" stroke="#a855f7" stroke-width="1.5" />
     <rect x="16" y="14" width="8" height="16" rx="2" fill="#c084fc" />
-    <text x="32" y="27" class="card-title" fill="#e9d5ff">中央網路共享儲存 (NAS) — 全員唯讀掛載</text>
-    <rect x="360" y="13" width="324" height="22" rx="4" fill="#1e1b4b" stroke="#6b21a8" />
-    <text x="370" y="28" class="code-text" fill="#c084fc">Win: X:\rez-system  |  Linux: /mnt/x/rez-system</text>
+    <text x="32" y="27" class="card-title" fill="#e9d5ff">中央 NAS 儲存 — 工作站與農場唯讀</text>
+    <rect x="310" y="13" width="374" height="22" rx="4" fill="#1e1b4b" stroke="#6b21a8" />
+    <text x="320" y="28" class="code-text" fill="#c084fc">Win: \\nas\share\rez-system  |  Linux: /mnt/x/rez-system</text>
 
     <!-- NAS 內部子卡片 1: Config -->
     <g transform="translate(16, 45)">
@@ -88,7 +88,7 @@
   <!-- 連線 2: NAS -> 工作站 -->
   <path d="M 200 345 L 200 380" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" />
   <rect x="135" y="352" width="130" height="20" rx="4" fill="#0f172a" stroke="#1e293b" />
-  <text x="200" y="366" text-anchor="middle" class="arrow-label">唯讀掛載 (X: 磁碟)</text>
+  <text x="200" y="366" text-anchor="middle" class="arrow-label">唯讀存取 (UNC)</text>
 
   <!-- 連線 3: NAS -> 農場 -->
   <path d="M 560 345 L 560 380" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" />
@@ -102,22 +102,22 @@
     <text x="28" y="27" class="card-title" fill="#a7f3d0">Windows 藝術家工作站</text>
     
     <rect x="14" y="42" width="307" height="24" rx="4" fill="#064e3b" stroke="#059669" />
-    <text x="22" y="58" class="badge-text" fill="#6ee7b7">%USERPROFILE%\rez-client</text>
+    <text x="22" y="58" class="badge-text" fill="#6ee7b7">C:\rez-client（本機共用，帳號唯讀）</text>
 
     <!-- 區塊 1: 情境 A -->
     <g transform="translate(14, 76)">
       <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
       <text x="10" y="20" class="card-title" font-size="12" fill="#38bdf8">【情境 A】venv/ (Rez 執行核心)</text>
       <text x="10" y="36" class="comment-text">install.py 隔離 CLI：rez-env、rez-build 等</text>
-      <text x="10" y="50" class="comment-text">PATH 加入 venv\Scripts\rez</text>
+      <text x="10" y="50" class="comment-text">Machine PATH：venv\Scripts\rez</text>
     </g>
 
     <!-- 區塊 2: 情境 B -->
     <g transform="translate(14, 140)">
       <rect width="307" height="56" rx="6" fill="url(#sub-card)" stroke="#334155" />
-      <text x="10" y="20" class="card-title" font-size="12" fill="#fbbf24">【情境 B】packages/ (本地測試庫)</text>
+      <text x="10" y="20" class="card-title" font-size="12" fill="#fbbf24">【情境 B】個人 packages/ (TD 限定)</text>
       <text x="10" y="36" class="comment-text">僅 STUDIO_REZ_DEV=1 的 TD 帳號啟用</text>
-      <text x="10" y="50" class="comment-text">一般帳號不建立、不搜尋本機開發庫</text>
+      <text x="10" y="50" class="comment-text">位於各帳號 %USERPROFILE%\rez-client</text>
     </g>
 
     <!-- 區塊 3: 預設 DCC -->
