@@ -73,8 +73,8 @@ Windows 工作站與 Windows 農場節點請使用 [02](02-客戶端與算圖農
 set -euo pipefail
 
 REZ_VERSION="3.4.0"
-# NAS 上 rez-3.4.0.zip 的 SHA-256（取得方式見本篇第一節）
-REZ_ARCHIVE_SHA256="${REZ_ARCHIVE_SHA256:-<填入 rez-3.4.0.zip 的 SHA-256>}"  # ← EDIT THIS
+# 官方 rez-3.4.0.zip 的 SHA-256（取得方式見本篇第一節）
+REZ_ARCHIVE_SHA256="${REZ_ARCHIVE_SHA256:-45316d8f2362977d859b14f15225304b5b0a4781bd271884e8056e5c5d52748f}"
 REZ_ROOT="${REZ_ROOT:-/mnt/x/rez-system}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/rez-client/venv}"
 PYTHON="${PYTHON:-python3}"
