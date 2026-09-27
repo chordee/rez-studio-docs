@@ -103,7 +103,7 @@ def commands():
    因此透過 `if defined("STUDIO_FARM_NODE"):` 進行條件式隔離（`defined()` 可正確讀取父環境變數）：
    - **工作站（美術）**：維持預設路徑，確保個人操作習慣與設定不被破壞。
    - **算圖農場（Worker）**：由農場環境變數宣告 `STUDIO_FARM_NODE=1`，將偏好目錄重定向至 `/var/cache/farm-prefs/houdini/__HVER__` 或 `C:/farm-prefs/houdini/__HVER__`，讓農場上的 `&` 不會帶入使用者家目錄中的本機測試外掛。
-     - **根目錄由部署建立並收緊權限**：Windows 由 `setup_client.ps1 -FarmNode` 建立 `C:\farm-prefs`，Linux 由 systemd `CacheDirectory=` 建立 `/var/cache/farm-prefs`；只有 SYSTEM／root、系統管理員與 Worker 執行身分可寫入（見 [02 第二節](02-客戶端與算圖農場部署.md)）。不要改用 `C:\temp` 或 `/var/tmp` 這類任何帳號都能預先建立內容的位置。
+     - **根目錄由部署建立並收緊權限**：Windows 由 `setup_client.ps1 -FarmNode` 建立 `C:\farm-prefs`，Linux 由 systemd `CacheDirectory=` 或 `systemd-tmpfiles` 建立 `/var/cache/farm-prefs`；只有 SYSTEM／root、系統管理員與 Worker 執行身分可寫入（見 [02 第二節](02-客戶端與算圖農場部署.md)）。不要改用 `C:\temp` 或 `/var/tmp` 這類任何帳號都能預先建立內容的位置。
      - **版本子目錄**：`houdini/__HVER__` 是否由 Houdini 首次啟動時自動建立，尚待農場實機確認；若未自動建立，部署時請預先建立對應版本的子目錄（例如 `houdini/20.5`）。
      - **限制**：同一節點上同版本的任務會共用這個目錄；需要逐任務隔離時，由派送端另行處理。
 4. **移除無效的 `dsolib` 與 `LD_LIBRARY_PATH`**：
