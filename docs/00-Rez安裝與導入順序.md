@@ -13,16 +13,16 @@
   來源：https://github.com/AcademySoftwareFoundation/rez/releases/download/3.4.0/3.4.0.zip
   放置：X:/rez-system/installers/rez-3.4.0.zip（Linux：/mnt/x/rez-system/installers/rez-3.4.0.zip）
   ```
-* **鎖定安裝包雜湊（永久穩定性保證）**：
+* **鎖定安裝包雜湊**：
   GitHub 自動產生的 tag source archive（`archive/refs/tags/...`）可能因後端壓縮演算法更新而改變檔案雜湊（見 [GitHub archive 穩定性說明](https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives)）。
-  因此本架構採用官方 Release 正式附帶的靜態 Asset（`releases/download/3.4.0/3.4.0.zip`），該檔案為不可變靜態檔案且帶有 Sigstore 數位簽名，其 SHA-256 雜湊已正式公布於 [GitHub Release API](https://api.github.com/repos/AcademySoftwareFoundation/rez/releases/tags/3.4.0)：
+  因此本架構採用 Release 附帶的固定 Asset（`releases/download/3.4.0/3.4.0.zip`），避免自動產生 archive 的壓縮格式變動。目前 SHA-256 由 [GitHub Release API](https://api.github.com/repos/AcademySoftwareFoundation/rez/releases/tags/3.4.0) 公布並由部署腳本鎖定：
   - **官方公布 SHA-256**：`898fbd182825009d5b293bac870d5ef507c97b14daccaa960c9b1328e069dd2e`
   兩支部署腳本皆已內建此固定雜湊，在解壓前進行嚴格比對。放上 NAS 後亦可執行指令核對：
   ```bash
   sha256sum /mnt/x/rez-system/installers/rez-3.4.0.zip                              # Linux
   Get-FileHash -Algorithm SHA256 X:\rez-system\installers\rez-3.4.0.zip           # Windows PowerShell
   ```
-  雜湊應寫在受版本控管的腳本內，不要與 zip 一起放在 NAS 上，否則檔案被替換時雜湊也可能一併被替換。
+  雜湊應寫在受版本控管的腳本內，不要與 zip 一起放在 NAS 上，否則檔案被替換時雜湊也可能一併被替換。若上游資產遭替換，雜湊驗證會安全中止。
 * **升級流程**：新版本先在 TD 機台安裝驗證，再同時更新部署腳本中的版本常數、安裝包雜湊與 NAS 上的安裝包。
 
 ---
