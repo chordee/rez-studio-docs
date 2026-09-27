@@ -219,4 +219,4 @@ Maya-USD 外掛載入成功！版本: 0.28.0
 USD Proxy Shape 節點建立成功: testUsdStageShape
 UFE Stage 取得正常: ...
 ```
-各項測試皆通過，方能確認 Maya、Maya-USD、UFE、二進位 DLL 及 Python API 皆已 100% 正確組裝且路徑重定位無誤。
+各項測試皆通過，可確認上述項目正常：MayaUSD 模組路徑已重定位至 Rez 套件庫、`mayaUsdPlugin` 可載入、Proxy Shape 可建立，以及 UFE 能取得 USD Stage。這些測試不涵蓋算圖輸出、農場 service 帳號環境與 Linux variant，這些情境需另行在目標機台驗證。
