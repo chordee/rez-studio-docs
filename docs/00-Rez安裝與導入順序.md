@@ -6,24 +6,27 @@
 
 ## 一、安裝來源：直接使用官方 repo
 
-* **來源**：官方 [`AcademySoftwareFoundation/rez`](https://github.com/AcademySoftwareFoundation/rez)，鎖定 tag **`3.4.0`**（支援 Python 3.8 至 3.13）。
-* **不建議 fork**：工作室的客製化需求都能透過中央 `rezconfig.py` 與 package 定義解決，不需要修改 Rez 原始碼。只有在必須修補 Rez 本身、且上游尚未合併時才 fork，並以獨立 tag（例如 `3.4.0-studio.1`）區分。
+* **來源**：官方 [`AcademySoftwareFoundation/rez`](https://github.com/AcademySoftwareFoundation/rez)，鎖定 tag **`3.5.0`**（官方 classifiers 列出 Python 3.8 至 3.13；本機已驗證 Python 3.11）。
+* **不建議 fork**：工作室的客製化需求都能透過中央 `rezconfig.py` 與 package 定義解決，不需要修改 Rez 原始碼。只有在必須修補 Rez 本身、且上游尚未合併時才 fork，並以獨立 tag（例如 `3.5.0-studio.1`）區分。
 * **離線安裝包**：將官方 Release 附帶的固定 Asset 下載一份放到中央 NAS，部署腳本會優先讀取 NAS，農場節點不需要連上 GitHub：
   ```text
-  來源：https://github.com/AcademySoftwareFoundation/rez/releases/download/3.4.0/3.4.0.zip
-  放置：X:/rez-system/installers/rez-3.4.0.zip（Linux：/mnt/x/rez-system/installers/rez-3.4.0.zip）
+  來源：https://github.com/AcademySoftwareFoundation/rez/releases/download/3.5.0/3.5.0.zip
+  放置：X:/rez-system/installers/rez-3.5.0.zip（Linux：/mnt/x/rez-system/installers/rez-3.5.0.zip）
   ```
 * **鎖定安裝包雜湊**：
   GitHub 自動產生的 tag source archive（`archive/refs/tags/...`）可能因後端壓縮演算法更新而改變檔案雜湊（見 [GitHub archive 穩定性說明](https://docs.github.com/en/repositories/working-with-files/using-files/downloading-source-code-archives)）。
-  因此本架構採用 Release 附帶的固定 Asset（`releases/download/3.4.0/3.4.0.zip`），避免自動產生 archive 的壓縮格式變動。目前 SHA-256 由 [GitHub Release API](https://api.github.com/repos/AcademySoftwareFoundation/rez/releases/tags/3.4.0) 公布並由部署腳本鎖定：
-  - **官方公布 SHA-256**：`898fbd182825009d5b293bac870d5ef507c97b14daccaa960c9b1328e069dd2e`
+  因此本架構採用 Release 附帶的固定 Asset（`releases/download/3.5.0/3.5.0.zip`），避免自動產生 archive 的壓縮格式變動。目前 SHA-256 由 [GitHub Release API](https://api.github.com/repos/AcademySoftwareFoundation/rez/releases/tags/3.5.0) 公布並由部署腳本鎖定：
+  - **官方公布 SHA-256**：`bdba63820d1e1280a0adb6f65d71ae4c6d4ac6b3680d85eb81c914587a0112a8`
   兩支部署腳本皆已內建此固定雜湊，在解壓前進行嚴格比對。放上 NAS 後亦可執行指令核對：
   ```bash
-  sha256sum /mnt/x/rez-system/installers/rez-3.4.0.zip                              # Linux
-  Get-FileHash -Algorithm SHA256 X:\rez-system\installers\rez-3.4.0.zip           # Windows PowerShell
+  sha256sum /mnt/x/rez-system/installers/rez-3.5.0.zip                              # Linux
+  Get-FileHash -Algorithm SHA256 X:\rez-system\installers\rez-3.5.0.zip           # Windows PowerShell
   ```
   雜湊應寫在受版本控管的腳本內，不要與 zip 一起放在 NAS 上，否則檔案被替換時雜湊也可能一併被替換。若上游資產遭替換，雜湊驗證會安全中止。
-* **升級流程**：新版本先在 TD 機台安裝驗證，再同時更新部署腳本中的版本常數、安裝包雜湊與 NAS 上的安裝包。
+* **離線部署前提**：NAS 上的 zip 只提供 Rez 原始碼。`install.py` 仍會執行 `pip install .`，建置隔離環境可能需要下載 setuptools 等建置相依套件。完全離線時，需先為目標 Python／平台準備經測試的 wheelhouse，並在執行部署腳本前設定 `PIP_NO_INDEX=1` 與 `PIP_FIND_LINKS` 指向該目錄；僅複製 Rez zip 不足以保證離線安裝成功。
+* **升級前驗證**：保留舊安裝及 Machine／服務環境設定備份。Windows 先使用已核對雜湊的原始碼，以已確認完整路徑的 Python 單獨執行 `install.py C:\rez-client-3.5.0\venv`；此步驟不執行 `setup_client.ps1`。Linux 可用本篇腳本並指定 `INSTALL_DIR=/opt/rez-client/3.5.0`。以新 CLI 的完整路徑驗證設定載入、套件解析、既有 `.rxt` 與 DCC 啟動。**不要搬移已建立的 venv**，其啟動器含安裝時的絕對路徑。
+* **切換版本**：Windows 驗證完成後，再執行 02 的 `setup_client.ps1 -ClientDir C:\rez-client-3.5.0`，並帶上原有的 `-RezRoot` 及農場參數；它會略過已完成的同版本安裝，立即寫入 Machine 環境變數並將新 CLI 路徑置前。Linux 則修改 `/etc/profile.d/rez.sh` 與 systemd override。Windows 使用者登出再登入，農場服務重啟後，以實際 Worker 帳號驗證。
+* **回復版本**：切回備份中的 CLI 路徑與設定。若以 Windows 部署腳本切回舊安裝，須使用鎖定該舊版本及對應雜湊、且包含 02 最新 PATH 置前邏輯的腳本，再指定舊的 `-ClientDir` 及原有部署參數；3.5.0 腳本會拒絕 3.4.0 安裝，而未修正的舊腳本不會將已存在的舊路徑移到最前。完成後重新登入／重啟服務，再確認 `rez --version` 與設定載入。
 
 ---
 
@@ -53,7 +56,7 @@
 | :--- | :--- | :--- | :--- |
 | 1 | 建立 NAS 的 `config/`、`packages/`、`installers/` 目錄並設定 ACL | IT | [01 第二節](01-中央伺服器與全域配置.md) |
 | 2 | 放置中央 `rezconfig.py` | Pipeline TD | [01 第五節](01-中央伺服器與全域配置.md) |
-| 3 | 將 `rez-3.4.0.zip` 放入 `installers/`，並核對 SHA-256 與兩支部署腳本內建值一致 | Pipeline TD | 本篇第一節 |
+| 3 | 將 `rez-3.5.0.zip` 放入 `installers/`，並核對 SHA-256 與兩支部署腳本內建值一致 | Pipeline TD | 本篇第一節 |
 | 4 | 在 TD 管理機安裝 Rez（本機共用安裝，需系統管理員權限） | Pipeline TD | Windows：[02 第一節](02-客戶端與算圖農場部署.md)；Linux：本篇第四節 |
 | 5 | 驗證 Rez 與設定檔載入 | Pipeline TD | 本篇第五節 |
 | 6 | 在 Windows 與 Linux 機台各執行一次 `rez-bind platform`、`arch`、`os` | Pipeline TD | [01 第一節](01-中央伺服器與全域配置.md) |
@@ -76,20 +79,26 @@ Windows 工作站與 Windows 農場節點請使用 [02](02-客戶端與算圖農
 # setup_rez_linux.sh - Linux 農場節點／TD 機台 Rez 部署腳本（需 root 或安裝目錄寫入權限）
 set -euo pipefail
 
-REZ_VERSION="3.4.0"
-# 官方 Release Asset 3.4.0.zip 的 SHA-256（取得方式見本篇第一節）
-REZ_ARCHIVE_SHA256="${REZ_ARCHIVE_SHA256:-898fbd182825009d5b293bac870d5ef507c97b14daccaa960c9b1328e069dd2e}"
+REZ_VERSION="3.5.0"
+# 官方 Release Asset 3.5.0.zip 的 SHA-256（取得方式見本篇第一節）
+REZ_ARCHIVE_SHA256="${REZ_ARCHIVE_SHA256:-bdba63820d1e1280a0adb6f65d71ae4c6d4ac6b3680d85eb81c914587a0112a8}"
 REZ_ROOT="${REZ_ROOT:-/mnt/x/rez-system}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/rez-client/venv}"
-PYTHON="${PYTHON:-python3}"
+PYTHON="${PYTHON:-/usr/bin/python3}"
 
 if [[ ! "$REZ_ARCHIVE_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
     echo "錯誤：尚未設定 REZ_ARCHIVE_SHA256，請先填入 rez-$REZ_VERSION.zip 的 SHA-256" >&2
     exit 1
 fi
 
-# 1. 檢查 Python 版本（Rez 3.4.0 支援 3.8-3.13）與 venv 模組
-"$PYTHON" -c 'import sys, venv, ensurepip; v = sys.version_info[:2]; sys.exit(0 if (3, 8) <= v < (3, 14) else f"Python {v[0]}.{v[1]} 不在 Rez 3.4.0 支援範圍 3.8-3.13")'
+# 1. 檢查 Python 版本（本部署採 Python 3.8-3.13）與 venv 模組
+"$PYTHON" -c 'import sys, venv, ensurepip; v = sys.version_info[:2]; sys.exit(0 if (3, 8) <= v < (3, 14) else f"Python {v[0]}.{v[1]} 不在本部署採用的範圍 3.8-3.13")'
+
+# 不覆蓋既有環境；升級時使用新的最終安裝目錄
+if [[ -e "$INSTALL_DIR" ]]; then
+    echo "錯誤：$INSTALL_DIR 已存在；請指定新的 INSTALL_DIR，驗證後再切換 PATH" >&2
+    exit 1
+fi
 
 # 2. 優先使用 NAS 上的安裝包，找不到才從 GitHub 下載
 tmp_dir="$(mktemp -d)"
@@ -109,7 +118,7 @@ echo "${REZ_ARCHIVE_SHA256,,}  $archive" | sha256sum -c --quiet - || {
     exit 1
 }
 
-# 3. 解壓並以官方 install.py 建立 production install（重複執行會覆蓋更新）
+# 3. 解壓並以官方 install.py 建立 production install（安裝目錄必須尚不存在）
 "$PYTHON" -m zipfile -e "$archive" "$tmp_dir"
 "$PYTHON" "$tmp_dir/rez-$REZ_VERSION/install.py" -v "$INSTALL_DIR"
 
