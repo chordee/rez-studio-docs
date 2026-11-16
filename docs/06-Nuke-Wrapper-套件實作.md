@@ -153,7 +153,7 @@ def commands():
 Set-Content -Path "$env:TEMP\test_nuke.py" -Encoding UTF8 -Value "import nuke; print('Nuke 核心載入成功！版本:', nuke.NUKE_VERSION_STRING)"
 
 # 透過 rez-env 呼叫 Nuke Terminal 模式執行 (使用 nuke.cmd shim)
-rez-env nuke-15.1.1 -- nuke -t "$env:TEMP\test_nuke.py"
+rez-env nuke==15.1.1 -- nuke -t "$env:TEMP\test_nuke.py"
 ```
 
 預期輸出：
@@ -164,7 +164,7 @@ Nuke 核心載入成功！版本: 15.1v1
 第二個版本使用相同測試腳本驗證：
 
 ```powershell
-rez-env nuke-17.1.1 -- nuke -t "$env:TEMP\test_nuke.py"
+rez-env nuke==17.1.1 -- nuke -t "$env:TEMP\test_nuke.py"
 ```
 
 預期輸出：
@@ -175,5 +175,5 @@ Nuke 核心載入成功！版本: 17.1v1
 
 ### 2. 農場渲染命令驗證
 ```bash
-rez-env nuke-15.1.1 -- nuke -x -F 1-100 /mnt/x/jobs/comp/shot010_comp.nk
+rez-env nuke==15.1.1 -- nuke -x -F 1-100 /mnt/x/jobs/comp/shot010_comp.nk
 ```

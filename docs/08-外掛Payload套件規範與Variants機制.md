@@ -35,8 +35,8 @@
 
 ```python
 variants = [
-    ["platform-windows", "houdini-20.5.278"],
-    ["platform-linux", "houdini-20.5.278"]
+    ["platform-windows", "houdini==20.5.278"],
+    ["platform-linux", "houdini==20.5.278"]
 ]
 ```
 
@@ -47,14 +47,14 @@ variants = [
 > [!IMPORTANT]
 > **Rez 實體目錄的巢狀規則**
 >
-> Rez 在儲存套件變體時，**不會**將多個 requirement 透過底線串接為單一資料夾，而是依照 `variants` 宣告的 requirement 順序，在檔案系統中建立**巢狀子目錄（Nested Subpaths）**。
+> Rez 在儲存套件變體時，**不會**將多個 requirement 透過底線串接為單一資料夾，而是依照 `variants` 宣告的 requirement 順序，在檔案系統中建立**巢狀子目錄（Nested Subpaths）**。精確相依中的 `==` 也會保留在目錄名稱中，例如 `houdini==20.5.278`；以下使用預設、未雜湊的 variant 路徑。
 
 ```text
 X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3.3.0/)
 ├── package.py                                  # 定義檔 (描述 variants 與 commands)
 │
 ├── platform-windows/                           # 第 1 層：作業系統
-│   └── houdini-20.5.278/                       # 第 2 層：宿主軟體 Build
+│   └── houdini==20.5.278/                       # 第 2 層：宿主軟體 Build
 │       ├── config/                             # UI、Icon 與外掛設定
 │       ├── dso/                                # htoa.dll
 │       ├── otls/                               # Arnold 專屬 HDA 數位資產
@@ -65,7 +65,7 @@ X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3
 │           └── python/
 │
 └── platform-linux/
-    └── houdini-20.5.278/                       # 需存放對齊農場 ABI 之 build（以 hou.applicationPlatformInfo() 實查為準）
+    └── houdini==20.5.278/                       # 需存放對齊農場 ABI 之 build（以 hou.applicationPlatformInfo() 實查為準）
         ├── config/
         ├── dso/                                # htoa.so
         ├── otls/
@@ -76,12 +76,14 @@ X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3
             └── python/
 ```
 
+> **既有套件遷移**：將 `houdini-20.5.278` 改成 `houdini==20.5.278` 不只縮小版本範圍，也會改變 variant 的 payload 子目錄；Maya 同理。已發布套件應另發新版本，依新定義建立 payload 目錄並重新產生 `.rxt`，保留舊版本供既有任務使用。不要只覆寫原版本的 `package.py` 或搬移舊 payload，否則可能破壞既有 context。
+
 以上只標出主要目錄。部署時必須以官方安裝器的「僅解壓」結果作為完整 Payload 根目錄，保留該 release 原有的所有檔案與子目錄，不可只挑選圖中列出的資料夾。尤其 `soho/` 是 Arnold ROP 正確覆寫 Houdini factory SOHO 路徑的必要內容。
 
 > [!NOTE]
 > **Variant 實體 Build 放置與 ABI 驗證規範**
 >
-> 官方釋出的 HtoA 安裝套件包含多種 Python 及 GCC 組合（例如 `HtoA ... Linux (GCC 11.2) Python 3.11` 或特定 Windows Python build）。在當前 `variants` 設計下，各平台的 `houdini-20.5.278` 資料夾內必須放置與該平台 Houdini `hou.applicationPlatformInfo()` 完全吻合的二進位建置。若工作室未來在同一平台上混用多種 Python 或 GCC 版本，則需在 variants 中進一步擴展獨立維度（如 `python-3.11`）。
+> 官方釋出的 HtoA 安裝套件包含多種 Python 及 GCC 組合（例如 `HtoA ... Linux (GCC 11.2) Python 3.11` 或特定 Windows Python build）。在當前 `variants` 設計下，各平台的 `houdini==20.5.278` 資料夾內必須放置與該平台 Houdini `hou.applicationPlatformInfo()` 完全吻合的二進位建置。若工作室未來在同一平台上混用多種 Python 或 GCC 版本，則需在 variants 中進一步擴展獨立維度（如 `python-3.11`）。
 
 ---
 
@@ -90,10 +92,10 @@ X:/rez-system/packages/htoa/6.3.3.0/ (Linux: /mnt/x/rez-system/packages/htoa/6.3
 ### 1. `{root}` 的動態指向
 在 Payload 套件中，**嚴禁寫死任何儲存路徑**。
 `package.py` 內建提供了 `{root}`（或 `this.root`）關鍵字：
-- 當在 Windows 上載入 `houdini-20.5.278` 時，`{root}` 會自動指向：
-  `X:/rez-system/packages/htoa/6.3.3.0/platform-windows/houdini-20.5.278`
+- 當在 Windows 上載入 `houdini==20.5.278` 時，`{root}` 會自動指向：
+  `X:/rez-system/packages/htoa/6.3.3.0/platform-windows/houdini==20.5.278`
 - 當在 Linux 上載入時，`{root}` 會自動指向：
-  `/mnt/x/rez-system/packages/htoa/6.3.3.0/platform-linux/houdini-20.5.278`
+  `/mnt/x/rez-system/packages/htoa/6.3.3.0/platform-linux/houdini==20.5.278`
 
 ### 2. 快取宣告：`cachable` 與 `relocatable`
 為了讓算圖農場節點將此套件複製到本機高速 SSD（`cache_packages_path`）以保護 NAS 頻寬，必須在 `package.py` 明確宣告：

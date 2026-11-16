@@ -88,7 +88,7 @@ def commands():
 在終端機執行 standalone 啟動指令：
 
 ```bash
-rez-env maya-2024 -- mayapy -c "import maya.standalone; maya.standalone.initialize(); import maya.cmds as cmds; print('Maya Version:', cmds.about(v=True))"
+rez-env maya==2024 -- mayapy -c "import maya.standalone; maya.standalone.initialize(); import maya.cmds as cmds; print('Maya Version:', cmds.about(v=True))"
 ```
 
 預期輸出：
@@ -99,7 +99,7 @@ Maya Version: 2024
 第二個版本使用相同方式驗證：
 
 ```bash
-rez-env maya-2027 -- mayapy -c "import maya.standalone; maya.standalone.initialize(); import maya.cmds as cmds; print('Maya Version:', cmds.about(v=True))"
+rez-env maya==2027 -- mayapy -c "import maya.standalone; maya.standalone.initialize(); import maya.cmds as cmds; print('Maya Version:', cmds.about(v=True))"
 ```
 
 預期輸出：
@@ -112,5 +112,5 @@ Maya Version: 2027
 驗證 `Render` 指令是否正確綁定：
 
 ```bash
-rez-env maya-2024 -- Render -help
+rez-env maya==2024 -- Render -help
 ```

@@ -33,10 +33,20 @@
 | **Foundry Nuke** | 17.1.1 (對應 17.1v1) | `C:/Program Files/Nuke17.1v1` | `/usr/local/Nuke17.1v1` |
 
 > [!WARNING]
-> **多版本並存時，一律使用完整版本請求**
+> **多版本並存時，一律使用精確版本請求（`==`）**
 >
 > 同一套件家族存在多個版本時，未指定版本的請求（例如 `rez-env houdini`）會解析到**最新版本**（目前為 `22.0.368`）。一旦有人發布更新的 Wrapper，所有未鎖定版本的 Launcher、Submitter 與腳本都會在無預警的情況下跟著升級。
-> 因此 Launcher 與 Submitter 必須使用完整版本請求（如 `houdini-20.5.278`），或由專案層級設定檔統一指定該專案使用的 DCC 版本。
+> 因此 Launcher 與 Submitter 必須使用 `==` 精確指定版本（如 `houdini==20.5.278`），或由專案層級設定檔統一提供相同的精確請求。
+
+`houdini-20.5.278` 是版本前綴請求，也接受 `20.5.278.1` 等延伸版本；寫滿版本號並不等於精確鎖定。單一 `=` 不是有效語法。CLI、`requires` 與 `variants` 都使用相同的 request 語法。
+
+| 請求 | 接受的版本 |
+| :--- | :--- |
+| `maya-2024` | `2024`、`2024.0`、`2024.1` 等前綴相同的版本 |
+| `maya==2024` | 僅 `2024`，不包含 `2024.0` |
+| `houdini==20.5.278` | 僅 `20.5.278` |
+
+見 [Rez 3.5.0 官方 Package Requests 說明](https://github.com/AcademySoftwareFoundation/rez/blob/3.5.0/docs/source/basic_concepts.rst#package-requests)。
 
 > [!IMPORTANT]
 > **Maya 本機安裝與隨附外掛部署規範（防範 Module 雙重衝突）**

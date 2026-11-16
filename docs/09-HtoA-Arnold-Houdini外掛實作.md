@@ -23,7 +23,7 @@ X:/rez-system/packages/htoa/6.3.3.0/
 ├── package.py                                  # Rez 套件設定檔
 │
 ├── platform-windows/
-│   └── houdini-20.5.278/                       # Windows + H20.5.278 巢狀子目錄
+│   └── houdini==20.5.278/                       # Windows + H20.5.278 巢狀子目錄
 │       ├── config/                             # UI、Icon 與外掛設定
 │       ├── dso/                                # htoa.dll, arnold_dso.dll
 │       ├── otls/                               # arnold_operators.hda, arnold_vop.hda
@@ -34,7 +34,7 @@ X:/rez-system/packages/htoa/6.3.3.0/
 │           └── python/                         # htoa 模組與 arnold.py
 │
 └── platform-linux/
-    └── houdini-20.5.278/                       # Linux + H20.5.278 巢狀子目錄
+    └── houdini==20.5.278/                       # Linux + H20.5.278 巢狀子目錄
         ├── config/
         ├── dso/                                # htoa.so
         ├── otls/
@@ -70,8 +70,8 @@ cachable = True
 
 # 二進位 ABI 變體矩陣宣告（嚴格對齊官方編譯 Build）
 variants = [
-    ["platform-windows", "houdini-20.5.278"],
-    ["platform-linux", "houdini-20.5.278"]
+    ["platform-windows", "houdini==20.5.278"],
+    ["platform-linux", "houdini==20.5.278"]
 ]
 
 # 指令行工具清單
@@ -111,16 +111,16 @@ def commands():
 
 ### 1. Houdini Path 疊加原理（Wrapper 與 Payload 共生）
 在 [04-Houdini-Wrapper-套件實作](04-Houdini-Wrapper-套件實作.md) 中，Houdini Wrapper 宣告了 `env.HOUDINI_PATH = "&"`。
-當同時載入 `houdini-20.5.278` 與 `htoa-6.3.3.0` 時：
+當同時載入 `houdini==20.5.278` 與 `htoa==6.3.3.0` 時：
 * 最終合成的環境變數為：
-  `X:/rez-system/packages/htoa/6.3.3.0/platform-windows/houdini-20.5.278;&`
+  `X:/rez-system/packages/htoa/6.3.3.0/platform-windows/houdini==20.5.278;&`
 * 末端的 `&` 確保 Houdini 原生內部節點正常讀取，前面的 `{root}` 確保 Arnold 節點優先載入。
 
 ### 2. Standalone Kick 算圖的依賴約束
 > [!IMPORTANT]
 > **依賴相依提醒**
 >
-> 由於 `htoa` 的 variants 宣告了 `houdini-20.5.278`，因此執行 `rez-env htoa -- kick` 時，Rez 會**連帶解析出 Houdini Wrapper 套件**。
+> 由於 `htoa` 的 variants 宣告了 `houdini==20.5.278`，因此執行 `rez-env htoa -- kick` 時，Rez 會**連帶解析出 Houdini Wrapper 套件**。
 > 這意味著純算圖節點若要使用 HtoA 內建的 `kick` 算圖，該節點本機也必須安裝有對應的 Houdini 軟體（否則會被 Houdini Wrapper 的 `stop()` 攔截）。若工作室需要完全脫離 Houdini 安裝的純 CPU/GPU 算圖節點，建議另外封裝獨立的 `arnold_core` 套件。
 
 ---
@@ -131,12 +131,12 @@ def commands():
 在 Windows 或 Linux 終端機執行：
 
 ```bash
-rez-env houdini-20.5.278 htoa-6.3.3.0 -- hython -c "import htoa; print('HtoA 載入成功，路徑:', htoa.__file__)"
+rez-env houdini==20.5.278 htoa==6.3.3.0 -- hython -c "import htoa; print('HtoA 載入成功，路徑:', htoa.__file__)"
 ```
 
 由於 `package.py` 未設定 `PYTHONPATH`，此測試同時驗證 Houdini 能經由 `HOUDINI_PATH` 推導出的 `{root}/scripts/python` 找到 HtoA 模組；印出的路徑應位於該 HtoA variant 目錄內。
 
 ### 2. 驗證 Arnold 獨立渲染引擎版本
 ```bash
-rez-env houdini-20.5.278 htoa-6.3.3.0 -- kick -info
+rez-env houdini==20.5.278 htoa==6.3.3.0 -- kick -info
 ```

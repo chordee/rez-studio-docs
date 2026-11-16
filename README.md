@@ -34,7 +34,7 @@
 Houdini、Maya 與 Nuke 等大型商業軟體若直接整包放入中央 NAS，不僅會霸佔數百 GB 儲存空間，更會在多人或農場併發啟動時造成龐大網路吞吐。因此本架構嚴格遵循 **「軟體安裝在各機預設路徑，Rez 僅存放輕量 Wrapper Package」** 的原則，由 `package.py` 動態探測作業系統與路徑並注入環境變數。
 
 ### 4. 渲染器外掛與擴充套件採用 Payload 模式（Variants 變體）
-與本機預設安裝的 DCC 不同，**Arnold (HtoA)** 與 **Maya-USD** 等外掛是以實體負載（Payload）形式直接發布至中央 NAS。透過宣告 `variants`（如 `["platform-windows", "houdini-20.5.278"]`），Rez 會依據作業系統與宿主 DCC 版本自動載入精確相容的二進位組件與 Python 模組。
+與本機預設安裝的 DCC 不同，**Arnold (HtoA)** 與 **Maya-USD** 等外掛是以實體負載（Payload）形式直接發布至中央 NAS。透過宣告 `variants`（如 `["platform-windows", "houdini==20.5.278"]`），Rez 會依據作業系統與宿主 DCC 版本自動載入精確相容的二進位組件與 Python 模組。
 
 ---
 

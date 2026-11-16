@@ -18,7 +18,7 @@ X:/rez-system/packages/maya_usd/0.28.0/
 ├── package.py                                  # Rez 套件設定檔
 │
 ├── platform-windows/
-│   └── maya-2024/                              # Windows + Maya 2024 巢狀子目錄
+│   └── maya==2024/                              # Windows + Maya 2024 巢狀子目錄
 │       ├── mayausd.mod                         # Autodesk 模組定義檔（官方實際產出為全小寫）
 │       ├── mayausd/
 │       │   ├── MayaUSD/                        # MayaUSD 外掛本體 (plugin, scripts)
@@ -26,7 +26,7 @@ X:/rez-system/packages/maya_usd/0.28.0/
 │       └── ...
 │
 └── platform-linux/
-    └── maya-2024/                              # Linux + Maya 2024 巢狀子目錄
+    └── maya==2024/                              # Linux + Maya 2024 巢狀子目錄
         ├── mayausd.mod
         ├── mayausd/
         │   ├── MayaUSD/
@@ -73,7 +73,7 @@ def relativize_mod(mod_file: Path, install_root: str) -> None:
 
 # 針對發布庫中的 mayausd.mod 進行相對路徑改寫
 relativize_mod(
-    Path("X:/rez-system/packages/maya_usd/0.28.0/platform-windows/maya-2024/mayausd.mod"),
+    Path("X:/rez-system/packages/maya_usd/0.28.0/platform-windows/maya==2024/mayausd.mod"),
     "C:/Program Files/Autodesk/MayaUSD/Maya2024/0.28.0",  # ← 填入原 .mod 內記錄的安裝根目錄
 )
 ```
@@ -126,8 +126,8 @@ cachable = True
 
 # 變體矩陣：綁定作業系統與對應的 Maya 版本
 variants = [
-    ["platform-windows", "maya-2024"],
-    ["platform-linux", "maya-2024"]
+    ["platform-windows", "maya==2024"],
+    ["platform-linux", "maya==2024"]
 ]
 
 def commands():
@@ -151,7 +151,7 @@ def commands():
 
 ### 1. Rez 的底層行為
 從 Rez 技術底層來看：
-- 若為已存在的版本（如 `0.28.0`）**在 `variants` 尾端追加新項目**（例如追加 `["platform-windows", "maya-2025"]`），既有的 variant index 索引不會改變，舊有的 `.rxt` 依然可繼續解析。
+- 若為已存在的版本（如 `0.28.0`）**在 `variants` 尾端追加新項目**（例如追加 `["platform-windows", "maya==2025"]`），既有的 variant index 索引不會改變，舊有的 `.rxt` 依然可繼續解析。
 - `package.py` 的 mtime 改變時，Memcached 的 package definition 快取也會自動失效更新。
 
 ### 2. 工作室政策建議（強烈推薦提升版本號）
@@ -173,7 +173,7 @@ def commands():
 透過 `mayapy` 執行 `cmds.getModulePath(moduleName='MayaUSD')`，確認回傳的路徑為中央 NAS（`X:/...`）或本機快取目錄（`C:/rez-cache/...`），而非原始安裝的 `C:/Program Files/...` 絕對路徑：
 
 ```powershell
-rez-env maya-2024 maya_usd-0.28.0 -- mayapy -c "
+rez-env maya==2024 maya_usd==0.28.0 -- mayapy -c "
 import maya.standalone
 maya.standalone.initialize()
 import maya.cmds as cmds
@@ -190,7 +190,7 @@ print('模組相對路徑重定位驗證成功！')
 在驗證 Maya-USD 外掛時，若直接建立 `mayaUsdProxyShape`，Maya 會預設建立一個 `transform1` 作為父節點。因此在測試腳本中，**必須明確建立 Transform 父節點**，以驗證 UFE 與 Stage 正確繫結：
 
 ```powershell
-rez-env maya-2024 maya_usd-0.28.0 -- mayapy -c "
+rez-env maya==2024 maya_usd==0.28.0 -- mayapy -c "
 import maya.standalone
 maya.standalone.initialize()
 import maya.cmds as cmds
@@ -213,7 +213,7 @@ print('UFE Stage 取得正常:', stage)
 
 預期輸出：
 ```text
-MayaUSD Module Path: X:/rez-system/packages/maya_usd/0.28.0/platform-windows/maya-2024/mayausd/MayaUSD/plugin/adsk
+MayaUSD Module Path: X:/rez-system/packages/maya_usd/0.28.0/platform-windows/maya==2024/mayausd/MayaUSD/plugin/adsk
 模組相對路徑重定位驗證成功！
 Maya-USD 外掛載入成功！版本: 0.28.0
 USD Proxy Shape 節點建立成功: testUsdStageShape

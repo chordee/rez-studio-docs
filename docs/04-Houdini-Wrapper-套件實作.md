@@ -118,7 +118,7 @@ def commands():
 在 Windows 工作站或 Linux 農場節點執行：
 
 ```bash
-rez-env houdini-20.5.278 -- hython -c "import hou; print('Houdini Version:', hou.applicationVersionString())"
+rez-env houdini==20.5.278 -- hython -c "import hou; print('Houdini Version:', hou.applicationVersionString())"
 ```
 
 預期輸出：
@@ -129,7 +129,7 @@ Houdini Version: 20.5.278
 第二個版本使用相同方式驗證：
 
 ```bash
-rez-env houdini-22.0.368 -- hython -c "import hou; print('Houdini Version:', hou.applicationVersionString())"
+rez-env houdini==22.0.368 -- hython -c "import hou; print('Houdini Version:', hou.applicationVersionString())"
 ```
 
 預期輸出：
@@ -140,5 +140,5 @@ Houdini Version: 22.0.368
 
 ### 2. 農場渲染命令驗證（Karma 渲染測試）
 ```bash
-rez-env houdini-20.5.278 -- hrender -e -f 1 10 -d karma1 /mnt/x/jobs/shot010/fx.hip
+rez-env houdini==20.5.278 -- hrender -e -f 1 10 -d karma1 /mnt/x/jobs/shot010/fx.hip
 ```
